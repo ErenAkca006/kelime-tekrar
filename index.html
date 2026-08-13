@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kelime Tekrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F4F1;
+    --ink:#1A1B25;
+    --card:#FFFFFF;
+    --muted:#71727F;
+    --line:#E4E4DE;
+    --accent:#5B4BDB;
+    --accent-soft:#ECEAFB;
+    --again:#E5484D;
+    --hard:#E8A33D;
+    --good:#30A46C;
+    --easy:#4C6EF5;
+    --shadow:0 1px 2px rgba(26,27,37,.06),0 12px 32px rgba(26,27,37,.08);
+    --radius:18px;
+    --disp:"Bricolage Grotesque",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--body);
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:24px 20px 64px}
+
+  /* Header */
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .brand{display:flex;flex-direction:column;gap:2px}
+  .brand h1{
+    font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:0;
+    line-height:1;
+  }
+  .brand h1 .dot{color:var(--accent)}
+  .brand .sub{font-size:13px;color:var(--muted)}
+  .stats{display:flex;gap:8px}
+  .stat{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:8px 13px;min-width:64px;text-align:center;box-shadow:var(--shadow)}
+  .stat .num{font-family:var(--mono);font-weight:700;font-size:20px;line-height:1;display:block}
+  .stat .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:4px}
+  .stat.due .num{color:var(--accent)}
+
+  /* Tabs */
+  nav.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:4px;margin-bottom:22px;box-shadow:var(--shadow)}
+  nav.tabs button{
+    flex:1;border:none;background:transparent;font-family:var(--body);font-weight:600;
+    font-size:14px;color:var(--muted);padding:9px 8px;border-radius:10px;cursor:pointer;
+    transition:.15s}
+  nav.tabs button.active{background:var(--ink);color:#fff}
+  nav.tabs button:hover:not(.active){color:var(--ink)}
+
+  .view{display:none}
+  .view.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* Review card */
+  .card-stage{perspective:1600px}
+  .flashcard{
+    position:relative;width:100%;min-height:300px;transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.4,.15,.2,1)}
+  .flashcard.flipped{transform:rotateY(180deg)}
+  .face{
+    position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:32px 28px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;overflow:auto}
+  .face.back{transform:rotateY(180deg)}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);
+    font-weight:600;margin-bottom:20px}
+  .word{font-family:var(--disp);font-weight:700;font-size:clamp(34px,7vw,50px);
+    letter-spacing:-.02em;line-height:1.05;margin:0}
+  .speak{
+    margin-top:22px;width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--accent);color:#fff;display:grid;place-items:center;
+    box-shadow:0 6px 18px rgba(91,75,219,.35);transition:transform .12s}
+  .speak:hover{transform:scale(1.06)}
+  .speak:active{transform:scale(.94)}
+  .speak.speaking{animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 6px 18px rgba(91,75,219,.35)}
+    50%{box-shadow:0 6px 26px rgba(91,75,219,.6),0 0 0 8px rgba(91,75,219,.12)}}
+  .speak svg{width:26px;height:26px}
+  .meaning{font-family:var(--disp);font-weight:700;font-size:clamp(26px,5.5vw,38px);
+    letter-spacing:-.01em;margin:0}
+  .back .speak{width:48px;height:48px;margin-top:18px}
+  .back .speak svg{width:20px;height:20px}
+  .examples{margin-top:20px;width:100%;max-width:46ch;display:flex;flex-direction:column;gap:8px}
+  .example{color:var(--muted);font-size:15px;font-style:italic;display:flex;gap:10px;
+    align-items:flex-start;text-align:left;margin:0}
+  .example b{color:var(--ink);font-style:normal;background:var(--accent-soft);
+    padding:1px 5px;border-radius:5px}
+  .ex-speak{flex:none;margin-top:2px;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);
+    background:var(--card);color:var(--accent);cursor:pointer;display:grid;place-items:center;transition:.14s}
+  .ex-speak:hover{background:var(--accent-soft)}
+  .ex-speak.speaking{border-color:var(--accent);box-shadow:0 0 0 4px rgba(91,75,219,.14)}
+  .ex-speak svg{width:14px;height:14px}
+
+  .reveal-btn{
+    display:block;width:100%;margin-top:16px;border:none;border-radius:14px;
+    background:var(--ink);color:#fff;font-family:var(--body);font-weight:600;font-size:15px;
+    padding:15px;cursor:pointer;transition:.15s}
+  .reveal-btn:hover{opacity:.9}
+
+  .ratings{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+  .ratings button{
+    border:1px solid var(--line);border-radius:13px;background:var(--card);cursor:pointer;
+    padding:12px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-family:var(--body);transition:.14s}
+  .ratings button:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+  .ratings .r-name{font-weight:600;font-size:14px}
+  .ratings .r-when{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .ratings button[data-q="again"] .r-name{color:var(--again)}
+  .ratings button[data-q="hard"] .r-name{color:var(--hard)}
+  .ratings button[data-q="good"] .r-name{color:var(--good)}
+  .ratings button[data-q="easy"] .r-name{color:var(--easy)}
+  .kbd-hint{text-align:center;font-size:12px;color:var(--muted);margin-top:14px}
+  .kbd-hint kbd{font-family:var(--mono);background:var(--card);border:1px solid var(--line);
+    border-radius:5px;padding:1px 6px;font-size:11px}
+
+  /* Empty / done state */
+  .empty{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:52px 28px;text-align:center}
+  .empty .big{font-family:var(--disp);font-weight:700;font-size:26px;margin:0 0 6px}
+  .empty p{color:var(--muted);margin:0 0 20px}
+  .empty .mini{font-family:var(--mono);font-size:40px;margin-bottom:12px}
+
+  /* Add / edit form */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:24px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+  .field label .opt{color:var(--muted);font-weight:400}
+  .field input,.field textarea{
+    width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;
+    font-family:var(--body);font-size:15px;background:var(--paper);color:var(--ink);resize:vertical}
+  .field input:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:1px;
+    background:var(--card)}
+  .ex-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .ex-row input{flex:1}
+  .add-ex{margin-top:2px;font-size:14px;padding:9px 14px}
+  .primary{border:none;border-radius:12px;background:var(--accent);color:#fff;
+    font-family:var(--body);font-weight:600;font-size:15px;padding:13px 22px;cursor:pointer;transition:.15s}
+  .primary:hover{filter:brightness(1.06)}
+  .ghost{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);
+    font-family:var(--body);font-weight:600;font-size:14px;padding:12px 18px;cursor:pointer}
+  .ghost:hover{background:var(--paper)}
+  .form-actions{display:flex;gap:10px;align-items:center;margin-top:4px}
+
+  /* List */
+  .list-head{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+  .search{flex:1;min-width:180px}
+  .search input{width:100%;border:1px solid var(--line);border-radius:11px;padding:10px 13px;
+    font-family:var(--body);font-size:14px;background:var(--card)}
+  .word-item{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;
+    display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .word-item .en{font-family:var(--disp);font-weight:700;font-size:17px}
+  .word-item .tr{color:var(--muted);font-size:14px}
+  .word-item .grow{flex:1;min-width:0}
+  .word-item .grow div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .badge{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:20px;
+    background:var(--paper);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .badge.due{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+  .icon-btn{border:none;background:transparent;cursor:pointer;color:var(--muted);
+    padding:6px;border-radius:8px;display:grid;place-items:center}
+  .icon-btn:hover{background:var(--paper);color:var(--ink)}
+  .icon-btn.del:hover{color:var(--again)}
+  .icon-btn svg{width:18px;height:18px}
+
+  /* Settings + data */
+  .settings-bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:22px;
+    padding-top:18px;border-top:1px solid var(--line)}
+  .settings-bar .grp{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:none;background:var(--card);padding:6px 12px;font-family:var(--body);
+    font-size:13px;font-weight:600;cursor:pointer;color:var(--muted)}
+  .seg button.on{background:var(--ink);color:#fff}
+  input[type=range]{accent-color:var(--accent)}
+  .data-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .link-btn{background:none;border:none;color:var(--muted);font-family:var(--body);font-size:13px;
+    cursor:pointer;text-decoration:underline;padding:4px}
+  .link-btn:hover{color:var(--ink)}
+  .link-btn.danger:hover{color:var(--again)}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:36px}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 20px;border-radius:12px;font-size:14px;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:520px){
+    .stat{min-width:56px;padding:7px 9px}
+    .ratings{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Kelime Tekrar<span class="dot">.</span></h1>
+      <span class="sub">Aralıklı tekrar · İngilizce seslendirme</span>
+    </div>
+    <div class="stats">
+      <div class="stat due"><span class="num" id="statDue">0</span><span class="lbl">Sırada</span></div>
+      <div class="stat"><span class="num" id="statTotal">0</span><span class="lbl">Kelime</span></div>
+      <div class="stat"><span class="num" id="statStreak">0</span><span class="lbl">Seri</span></div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="review" class="active">Tekrar</button>
+    <button data-tab="add">Ekle</button>
+    <button data-tab="list">Kelimeler</button>
+  </nav>
+
+  <!-- REVIEW -->
+  <section class="view active" id="view-review">
+    <div id="reviewArea"></div>
+  </section>
+
+  <!-- ADD -->
+  <section class="view" id="view-add">
+    <div class="panel">
+      <div class="field">
+        <label for="fEn">İngilizce kelime</label>
+        <input id="fEn" type="text" placeholder="örn. resilient" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="fTr">Türkçe anlamı</label>
+        <input id="fTr" type="text" placeholder="örn. dayanıklı, esnek" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Örnek cümleler <span class="opt">(isteğe bağlı — birden fazla ekleyebilirsin)</span></label>
+        <div id="exList"></div>
+        <button type="button" class="ghost add-ex" id="addExBtn">+ Cümle ekle</button>
+      </div>
+      <div class="form-actions">
+        <button class="primary" id="saveWord">Kelimeyi ekle</button>
+        <button class="ghost" id="cancelEdit" style="display:none">Vazgeç</button>
+        <span id="editHint" style="font-size:13px;color:var(--muted)"></span>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:14px;line-height:1.6">
+      İpucu: Örnek cümlede vurgulamak istediğin kelimeyi <b>*yıldız*</b> içine alırsan
+      arka yüzde işaretlenir. Her cümlenin yanındaki hoparlörden cümleyi de dinleyebilirsin.
+    </p>
+  </section>
+
+  <!-- LIST -->
+  <section class="view" id="view-list">
+    <div class="list-head">
+      <div class="search"><input id="searchBox" type="text" placeholder="Kelimelerde ara…"></div>
+      <span class="badge" id="listCount">0 kelime</span>
+    </div>
+    <div id="wordList"></div>
+
+    <div class="settings-bar">
+      <div class="grp">Aksan
+        <div class="seg" id="accentSeg">
+          <button data-acc="en-US" class="on">US</button>
+          <button data-acc="en-GB">UK</button>
+        </div>
+      </div>
+      <div class="grp">Hız
+        <input type="range" id="rateRange" min="0.6" max="1.2" step="0.05" value="0.95">
+        <span id="rateVal" style="font-family:var(--mono);font-size:12px">0.95×</span>
+      </div>
+    </div>
+    <div class="data-row">
+      <button class="link-btn" id="exportBtn">Yedek al (.json indir)</button>
+      <button class="link-btn" id="importBtn">Yedekten yükle</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+      <button class="link-btn danger" id="clearBtn">Tümünü sil</button>
+    </div>
+  </section>
+
+  <footer>Verilerin bu tarayıcıda saklanır · seslendirme cihazının ses motorunu kullanır</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Storage (localStorage + in-memory fallback) ---------- */
+  var KEY="kelime-tekrar-v1";
+  var mem=null;
+  function canLS(){try{var k="__t";localStorage.setItem(k,"1");localStorage.removeItem(k);return true;}catch(e){return false;}}
+  var LS=canLS();
+  function load(){
+    if(LS){try{var raw=localStorage.getItem(KEY);if(raw)return JSON.parse(raw);}catch(e){}}
+    if(mem)return mem;
+    return null;
+  }
+  function persist(){
+    var data={cards:state.cards,meta:state.meta};
+    if(LS){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){mem=data;}}
+    else mem=data;
+  }
+
+  /* ---------- State ---------- */
+  var DAY=86400000;
+  var state={cards:[],meta:{lastReviewDate:null,streak:0,accent:"en-US",rate:0.95}};
+  var saved=load();
+  if(saved){
+    state.cards=(saved.cards||[]).map(normalize);
+    state.meta=Object.assign(state.meta,saved.meta||{});
+  }else{
+    state.cards=seed();
+    persist();
+  }
+
+  function normalize(c){
+    if(!c.examples){c.examples = c.ex ? [c.ex] : [];}
+    delete c.ex; delete c.phon;
+    if(typeof c.ease!=="number")c.ease=2.5;
+    if(typeof c.interval!=="number")c.interval=0;
+    if(typeof c.reps!=="number")c.reps=0;
+    if(typeof c.due!=="number")c.due=Date.now();
+    return c;
+  }
+
+  function seed(){
+    var now=Date.now();
+    var s=[
+      ["resilient","dayanıklı, esnek",["A *resilient* system recovers quickly from failures."]],
+      ["threshold","eşik, sınır değeri",["The alarm triggers above a *threshold* temperature."]],
+      ["deploy","dağıtmak, devreye almak",["We *deploy* the update every Friday.","They plan to *deploy* the new servers next month."]],
+      ["redundant","gereksiz; yedekli",["A *redundant* server keeps the service online."]],
+      ["mitigate","hafifletmek, azaltmak",["Caching helps *mitigate* the load."]],
+      ["latency","gecikme süresi",["Low *latency* is critical for real-time apps."]]
+    ];
+    return s.map(function(x,i){return newCard(x[0],x[1],x[2],now+i);});
+  }
+  function newCard(en,tr,examples,dueAt){
+    return {id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      en:en,tr:tr,examples:examples||[],
+      ease:2.5,interval:0,reps:0,due:dueAt||Date.now()};
+  }
+
+  /* ---------- SM-2 ---------- */
+  function schedule(card,q){
+    var now=Date.now();
+    if(q<3){
+      card.reps=0;card.interval=0;
+      card.ease=Math.max(1.3,card.ease-0.2);
+      card.due=now+10*60*1000;
+    }else{
+      if(card.reps===0)card.interval=1;
+      else if(card.reps===1)card.interval=6;
+      else card.interval=Math.round(card.interval*card.ease);
+      if(q===5)card.interval=Math.round(card.interval*1.15);
+      card.reps++;
+      card.ease=card.ease+(0.1-(5-q)*(0.08+(5-q)*0.02));
+      if(card.ease<1.3)card.ease=1.3;
+      card.due=now+card.interval*DAY;
+    }
+    bumpStreak();
+    persist();
+  }
+  function nextLabel(card,q){
+    if(q<3)return "10 dk";
+    var iv;
+    if(card.reps===0)iv=1;else if(card.reps===1)iv=6;else iv=Math.round(card.interval*card.ease);
+    if(q===5)iv=Math.round(iv*1.15);
+    if(iv<1)iv=1;
+    return iv+" gün";
+  }
+  function bumpStreak(){
+    var today=new Date();today.setHours(0,0,0,0);var t=today.getTime();
+    var last=state.meta.lastReviewDate;
+    if(last===t)return;
+    if(last===t-DAY)state.meta.streak=(state.meta.streak||0)+1;
+    else state.meta.streak=1;
+    state.meta.lastReviewDate=t;
+  }
+  function dueQueue(){
+    var now=Date.now();
+    return state.cards.filter(function(c){return c.due<=now;})
+      .sort(function(a,b){return a.due-b.due;});
+  }
+
+  /* ---------- TTS (toggle: press to speak, press again to stop) ---------- */
+  var voices=[],isSpeaking=false;
+  function loadVoices(){voices=window.speechSynthesis?speechSynthesis.getVoices():[];}
+  if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
+  function pickVoice(lang){
+    if(!voices.length)loadVoices();
+    var exact=voices.filter(function(v){return v.lang&&v.lang.toLowerCase()===lang.toLowerCase();});
+    if(exact.length)return exact[0];
+    var base=lang.split("-")[0];
+    var loose=voices.filter(function(v){return v.lang&&v.lang.toLowerCase().indexOf(base)===0;});
+    return loose[0]||null;
+  }
+  function clearSpeakUI(){document.querySelectorAll(".speaking").forEach(function(b){b.classList.remove("speaking");});}
+  function stopSpeak(){if(window.speechSynthesis)speechSynthesis.cancel();isSpeaking=false;clearSpeakUI();}
+  function startSpeak(text,btn){
+    if(!("speechSynthesis" in window)){toast("Bu tarayıcı seslendirmeyi desteklemiyor");return;}
+    speechSynthesis.cancel();clearSpeakUI();
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang=state.meta.accent;u.rate=state.meta.rate;
+    var v=pickVoice(state.meta.accent);if(v)u.voice=v;
+    isSpeaking=true;if(btn)btn.classList.add("speaking");
+    u.onend=u.onerror=function(){isSpeaking=false;if(btn)btn.classList.remove("speaking");};
+    speechSynthesis.speak(u);
+  }
+  function toggleSpeak(text,btn){if(isSpeaking){stopSpeak();}else{startSpeak(text,btn);}}
+
+  /* ---------- Review ---------- */
+  var reviewArea=document.getElementById("reviewArea");
+  var current=null,showingBack=false;
+
+  var SPK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>';
+  var SPKm='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
+
+  function esc(s){return (s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function fmtExample(ex){return esc(ex).replace(/\*(.+?)\*/g,"<b>$1</b>");}
+  function plain(ex){return (ex||"").replace(/\*/g,"");}
+
+  function renderReview(){
+    updateStats();
+    var queue=dueQueue();
+    if(!state.cards.length){
+      reviewArea.innerHTML='<div class="empty"><div class="mini">✎</div>'+
+        '<h2 class="big">Henüz kelime yok</h2><p>Başlamak için birkaç kelime ekle.</p>'+
+        '<button class="primary" id="goAdd">Kelime ekle</button></div>';
+      document.getElementById("goAdd").addEventListener("click",function(){switchTab("add");});
+      return;
+    }
+    if(!queue.length){
+      reviewArea.innerHTML='<div class="empty"><div class="mini">✓</div>'+
+        '<h2 class="big">Bugünlük bu kadar</h2><p>Sıradaki tekrar zamanı gelince kelimeler burada belirir.</p>'+
+        '<button class="ghost" id="goList">Kelimelere bak</button></div>';
+      document.getElementById("goList").addEventListener("click",function(){switchTab("list");});
+      return;
+    }
+    current=queue[0];showingBack=false;
+    drawCard();
+  }
+
+  function drawCard(){
+    var c=current;
+    var exHtml="";
+    if(c.examples&&c.examples.length){
+      exHtml='<div class="examples">'+c.examples.map(function(s,i){
+        return '<p class="example"><button class="ex-speak" data-exi="'+i+'" title="Cümleyi dinle">'+SPKm+
+          '</button><span>'+fmtExample(s)+'</span></p>';
+      }).join("")+'</div>';
+    }
+    reviewArea.innerHTML=
+      '<div class="card-stage"><div class="flashcard" id="fc">'+
+        '<div class="face front">'+
+          '<div class="eyebrow">İngilizce</div>'+
+          '<h2 class="word">'+esc(c.en)+'</h2>'+
+          '<button class="speak" id="spkFront" title="Seslendir (S)">'+SPK+'</button>'+
+        '</div>'+
+        '<div class="face back">'+
+          '<div class="eyebrow">Anlamı</div>'+
+          '<h2 class="meaning">'+esc(c.tr)+'</h2>'+
+          '<button class="speak" id="spkBack" title="Kelimeyi dinle (S)">'+SPK+'</button>'+
+          exHtml+
+        '</div>'+
+      '</div></div>'+
+      '<div id="afterCard"></div>';
+    document.getElementById("spkFront").addEventListener("click",function(e){e.stopPropagation();toggleSpeak(c.en,this);});
+    document.getElementById("spkBack").addEventListener("click",function(e){e.stopPropagation();toggleSpeak(c.en,this);});
+    reviewArea.querySelectorAll(".ex-speak").forEach(function(b){
+      b.addEventListener("click",function(e){e.stopPropagation();
+        toggleSpeak(plain(c.examples[+b.getAttribute("data-exi")]),b);});
+    });
+    renderControls();
+    startSpeak(c.en,document.getElementById("spkFront"));
+  }
+
+  function renderControls(){
+    var after=document.getElementById("afterCard");
+    if(!after)return;
+    if(!showingBack){
+      after.innerHTML='<button class="reveal-btn" id="revealBtn">Anlamı göster</button>'+
+        '<p class="kbd-hint"><kbd>Boşluk</kbd> çevir · <kbd>S</kbd> seslendir / durdur</p>';
+      document.getElementById("revealBtn").addEventListener("click",toggleFlip);
+    }else{
+      var qs=[["again","Tekrar",2],["hard","Zor",3],["good","İyi",4],["easy","Kolay",5]];
+      var html='<div class="ratings">';
+      qs.forEach(function(r){
+        html+='<button data-q="'+r[0]+'" data-qval="'+r[2]+'"><span class="r-name">'+r[1]+
+          '</span><span class="r-when">'+nextLabel(current,r[2])+'</span></button>';
+      });
+      html+='</div><p class="kbd-hint"><kbd>Boşluk</kbd> çevir · <kbd>1-4</kbd> puanla · <kbd>S</kbd> seslendir / durdur</p>';
+      after.innerHTML=html;
+      after.querySelectorAll(".ratings button").forEach(function(b){
+        b.addEventListener("click",function(){rate(parseInt(this.getAttribute("data-qval"),10));});
+      });
+    }
+  }
+
+  function toggleFlip(){
+    showingBack=!showingBack;
+    var fc=document.getElementById("fc");
+    if(fc)fc.classList.toggle("flipped",showingBack);
+    renderControls();
+  }
+  function rate(q){
+    if(!current)return;
+    stopSpeak();
+    schedule(current,q);
+    renderReview();
+  }
+
+  /* ---------- Stats ---------- */
+  function updateStats(){
+    document.getElementById("statDue").textContent=dueQueue().length;
+    document.getElementById("statTotal").textContent=state.cards.length;
+    document.getElementById("statStreak").textContent=state.meta.streak||0;
+  }
+
+  /* ---------- Add / Edit ---------- */
+  var editingId=null;
+  var fEn=document.getElementById("fEn"),fTr=document.getElementById("fTr"),
+      exList=document.getElementById("exList");
+  var TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>';
+  var PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+
+  function addExRow(val){
+    var row=document.createElement("div");row.className="ex-row";
+    var inp=document.createElement("input");inp.type="text";
+    inp.placeholder="We *deploy* the update every Friday.";inp.value=val||"";
+    inp.addEventListener("keydown",function(e){
+      if(e.key==="Enter"){e.preventDefault();
+        var rows=exList.querySelectorAll(".ex-row");
+        if(row===rows[rows.length-1]&&inp.value.trim())addExRow("");
+        else saveWord();
+      }
+    });
+    var rm=document.createElement("button");rm.type="button";rm.className="icon-btn del";
+    rm.innerHTML=TRASH;rm.title="Kaldır";
+    rm.addEventListener("click",function(){row.remove();if(!exList.children.length)addExRow("");});
+    row.appendChild(inp);row.appendChild(rm);exList.appendChild(row);
+    return inp;
+  }
+  function getExamples(){
+    return Array.prototype.map.call(exList.querySelectorAll("input"),function(i){return i.value.trim();})
+      .filter(function(v){return v;});
+  }
+  function setExamples(arr){
+    exList.innerHTML="";
+    if(arr&&arr.length)arr.forEach(function(v){addExRow(v);});
+    else addExRow("");
+  }
+
+  document.getElementById("addExBtn").addEventListener("click",function(){addExRow("").focus();});
+  document.getElementById("saveWord").addEventListener("click",saveWord);
+  document.getElementById("cancelEdit").addEventListener("click",resetForm);
+  fEn.addEventListener("keydown",function(e){if(e.key==="Enter")fTr.focus();});
+  fTr.addEventListener("keydown",function(e){if(e.key==="Enter"){var f=exList.querySelector("input");if(f)f.focus();}});
+
+  function saveWord(){
+    var en=fEn.value.trim(),tr=fTr.value.trim();
+    if(!en||!tr){toast("İngilizce ve Türkçe alanları gerekli");return;}
+    var examples=getExamples();
+    if(editingId){
+      var c=state.cards.find(function(x){return x.id===editingId;});
+      if(c){c.en=en;c.tr=tr;c.examples=examples;}
+      toast("Güncellendi");
+    }else{
+      state.cards.push(newCard(en,tr,examples));
+      toast("“"+en+"” eklendi");
+    }
+    persist();resetForm();updateStats();
+    if(document.getElementById("view-review").classList.contains("active"))renderReview();
+    fEn.focus();
+  }
+  function resetForm(){
+    editingId=null;fEn.value=fTr.value="";setExamples([]);
+    document.getElementById("saveWord").textContent="Kelimeyi ekle";
+    document.getElementById("cancelEdit").style.display="none";
+    document.getElementById("editHint").textContent="";
+  }
+  function startEdit(id){
+    var c=state.cards.find(function(x){return x.id===id;});if(!c)return;
+    editingId=id;fEn.value=c.en;fTr.value=c.tr;setExamples(c.examples);
+    document.getElementById("saveWord").textContent="Değişikliği kaydet";
+    document.getElementById("cancelEdit").style.display="inline-block";
+    document.getElementById("editHint").textContent="Düzenleniyor";
+    switchTab("add");fEn.focus();
+  }
+
+  /* ---------- List ---------- */
+  var wordList=document.getElementById("wordList"),searchBox=document.getElementById("searchBox");
+  searchBox.addEventListener("input",renderList);
+
+  function relTime(due){
+    var d=due-Date.now();
+    if(d<=0)return {t:"sırada",due:true};
+    if(d<DAY)return {t:Math.round(d/3600000)+" sa",due:false};
+    return {t:Math.round(d/DAY)+" gün",due:false};
+  }
+  function renderList(){
+    var q=searchBox.value.trim().toLowerCase();
+    var items=state.cards.slice().sort(function(a,b){return a.due-b.due;});
+    if(q)items=items.filter(function(c){return (c.en+" "+c.tr).toLowerCase().indexOf(q)>-1;});
+    document.getElementById("listCount").textContent=state.cards.length+" kelime";
+    if(!items.length){
+      wordList.innerHTML='<p style="color:var(--muted);text-align:center;padding:30px 0">'+
+        (state.cards.length?"Eşleşen kelime yok.":"Liste boş.")+'</p>';
+      return;
+    }
+    wordList.innerHTML=items.map(function(c){
+      var r=relTime(c.due);
+      return '<div class="word-item">'+
+        '<button class="icon-btn" data-speak="'+c.id+'" title="Seslendir">'+SPKm+'</button>'+
+        '<div class="grow"><div class="en">'+esc(c.en)+'</div><div class="tr">'+esc(c.tr)+'</div></div>'+
+        '<span class="badge '+(r.due?"due":"")+'">'+r.t+'</span>'+
+        '<button class="icon-btn" data-edit="'+c.id+'" title="Düzenle">'+PEN+'</button>'+
+        '<button class="icon-btn del" data-del="'+c.id+'" title="Sil">'+TRASH+'</button>'+
+      '</div>';
+    }).join("");
+    wordList.querySelectorAll("[data-speak]").forEach(function(b){
+      b.addEventListener("click",function(){var c=state.cards.find(function(x){return x.id===b.getAttribute("data-speak");});if(c)toggleSpeak(c.en,b);});
+    });
+    wordList.querySelectorAll("[data-edit]").forEach(function(b){
+      b.addEventListener("click",function(){startEdit(b.getAttribute("data-edit"));});
+    });
+    wordList.querySelectorAll("[data-del]").forEach(function(b){
+      b.addEventListener("click",function(){delWord(b.getAttribute("data-del"));});
+    });
+  }
+  function delWord(id){
+    var c=state.cards.find(function(x){return x.id===id;});
+    if(!c)return;
+    if(!confirm("“"+c.en+"” silinsin mi?"))return;
+    state.cards=state.cards.filter(function(x){return x.id!==id;});
+    persist();renderList();updateStats();
+    if(document.getElementById("view-review").classList.contains("active"))renderReview();
+  }
+
+  /* ---------- Settings ---------- */
+  document.getElementById("accentSeg").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    state.meta.accent=b.getAttribute("data-acc");
+    this.querySelectorAll("button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");persist();
+  });
+  var rateRange=document.getElementById("rateRange"),rateVal=document.getElementById("rateVal");
+  rateRange.value=state.meta.rate;rateVal.textContent=(+state.meta.rate).toFixed(2)+"×";
+  rateRange.addEventListener("input",function(){
+    state.meta.rate=parseFloat(this.value);rateVal.textContent=state.meta.rate.toFixed(2)+"×";persist();
+  });
+  document.querySelectorAll("#accentSeg button").forEach(function(b){
+    b.classList.toggle("on",b.getAttribute("data-acc")===state.meta.accent);
+  });
+
+  /* ---------- Data ---------- */
+  document.getElementById("exportBtn").addEventListener("click",function(){
+    var blob=new Blob([JSON.stringify({cards:state.cards,meta:state.meta},null,2)],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download="kelime-tekrar-yedek.json";a.click();URL.revokeObjectURL(a.href);
+  });
+  var importFile=document.getElementById("importFile");
+  document.getElementById("importBtn").addEventListener("click",function(){importFile.click();});
+  importFile.addEventListener("change",function(){
+    var f=this.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var data=JSON.parse(r.result);
+        if(!data.cards||!Array.isArray(data.cards))throw 0;
+        if(confirm("Yedekteki "+data.cards.length+" kelime yüklensin mi? Mevcut liste değiştirilecek.")){
+          state.cards=data.cards.map(normalize);
+          if(data.meta)state.meta=Object.assign(state.meta,data.meta);
+          persist();renderAll();toast("Yedek yüklendi");
+        }
+      }catch(e){toast("Dosya okunamadı");}
+    };
+    r.readAsText(f);this.value="";
+  });
+  document.getElementById("clearBtn").addEventListener("click",function(){
+    if(confirm("Tüm kelimeler ve ilerleme silinsin mi? Bu geri alınamaz."))
+    { state.cards=[];state.meta.streak=0;state.meta.lastReviewDate=null;persist();renderAll();toast("Temizlendi"); }
+  });
+
+  /* ---------- Tabs ---------- */
+  document.querySelectorAll("nav.tabs button").forEach(function(b){
+    b.addEventListener("click",function(){switchTab(b.getAttribute("data-tab"));});
+  });
+  function switchTab(tab){
+    stopSpeak();
+    document.querySelectorAll("nav.tabs button").forEach(function(b){
+      b.classList.toggle("active",b.getAttribute("data-tab")===tab);});
+    document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active");});
+    document.getElementById("view-"+tab).classList.add("active");
+    if(tab==="review")renderReview();
+    if(tab==="list")renderList();
+  }
+
+  /* ---------- Keyboard ---------- */
+  document.addEventListener("keydown",function(e){
+    if(!document.getElementById("view-review").classList.contains("active"))return;
+    var tag=(e.target.tagName||"").toLowerCase();
+    if(tag==="input"||tag==="textarea")return;
+    if(!current)return;
+    if(e.key===" "){e.preventDefault();toggleFlip();}
+    else if(e.key.toLowerCase()==="s"){e.preventDefault();
+      toggleSpeak(current.en,document.getElementById(showingBack?"spkBack":"spkFront"));}
+    else if(showingBack&&["1","2","3","4"].indexOf(e.key)>-1){rate([2,3,4,5][parseInt(e.key,10)-1]);}
+  });
+
+  /* ---------- Toast ---------- */
+  var toastEl=document.getElementById("toast"),toastT;
+  function toast(msg){toastEl.textContent=msg;toastEl.classList.add("show");
+    clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove("show");},2200);}
+
+  /* ---------- Init ---------- */
+  function renderAll(){updateStats();renderReview();renderList();}
+  setExamples([]);
+  renderAll();
+})();
+</script>
+</body>
+</html>
