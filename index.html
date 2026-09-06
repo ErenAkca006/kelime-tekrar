@@ -158,6 +158,44 @@
   .sync-hint{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.55}
   .code-pill{font-family:var(--mono);background:var(--accent-soft);color:var(--accent);padding:7px 11px;
     border-radius:8px;font-size:14px;font-weight:700;letter-spacing:.06em}
+  .user-pill{background:var(--accent-soft);color:var(--accent);padding:7px 11px;border-radius:8px;
+    font-size:13px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  [hidden]{display:none!important}
+
+  /* ---- giriş ekranı ---- */
+  .gate{position:fixed;inset:0;z-index:90;background:var(--paper);display:grid;place-items:center;
+    padding:20px;overflow:auto}
+  .gate-card{width:100%;max-width:390px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 26px}
+  .gate-card h2{font-family:var(--disp);font-weight:800;font-size:27px;margin:0 0 5px;letter-spacing:-.02em}
+  .gate-card h2 .dot{color:var(--accent)}
+  .gate-sub{font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.5}
+  .gate-seg{display:flex;width:100%;margin-bottom:18px}
+  .gate-seg button{flex:1;padding:9px 8px}
+  .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--line);
+    background:var(--card);border-radius:12px;padding:11px;font-family:var(--body);font-size:14px;
+    font-weight:600;color:var(--ink);cursor:pointer;transition:.15s}
+  .gbtn:hover{background:var(--paper)}
+  .gsep{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted);font-size:12px}
+  .gsep::before,.gsep::after{content:"";flex:1;height:1px;background:var(--line)}
+  .remember{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);margin:2px 0 16px;cursor:pointer}
+  .remember input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  .gate-err{color:var(--again);font-size:13px;margin:0 0 12px;line-height:1.45}
+  .gate-submit{width:100%;justify-content:center}
+  .gate-foot{display:flex;justify-content:center;margin-top:10px}
+  .gate-note{font-size:12px;color:var(--muted);text-align:center;margin:16px 0 0;line-height:1.5}
+  .gate-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}
+  .spin{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);
+    border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---- hesap çubuğu ---- */
+  .acct{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:8px 12px;margin-bottom:14px;box-shadow:var(--shadow);font-size:13px}
+  .acct-email{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .acct-state{color:var(--muted);font-size:12px;margin-left:auto;flex:none}
+  .acct .link-btn{flex:none}
 
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:36px}
 
@@ -171,6 +209,37 @@
 </style>
 </head>
 <body>
+<div class="gate" id="authGate" hidden>
+  <div class="gate-loading" id="gateLoading"><span class="spin"></span> Yükleniyor…</div>
+  <div class="gate-card" id="gateCard" hidden>
+    <h2>Kelime Tekrar<span class="dot">.</span></h2>
+    <p class="gate-sub" id="gateSub">Devam etmek için giriş yap — kelimelerin ve tekrar ilerlemen hesabına kaydedilir.</p>
+    <div class="seg gate-seg" id="gateSeg">
+      <button type="button" data-mode="signin" class="on">Giriş yap</button>
+      <button type="button" data-mode="signup">Hesap oluştur</button>
+    </div>
+    <button type="button" class="gbtn" id="gGoogle">
+      <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16.4z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-2.9-.8-4.5s.3-3.1.8-4.5l-7.8-6.1C1 16.8 0 20.3 0 24s1 7.2 2.6 10.4l7.8-5.7z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.1-5.5c-2 1.3-4.6 2.1-8.8 2.1-6.3 0-11.7-3.7-13.6-9.1l-7.8 5.7C6.5 42.6 14.6 48 24 48z"/></svg>
+      Google ile devam et
+    </button>
+    <div class="gsep"><span>veya e-posta ile</span></div>
+    <div class="field">
+      <label for="gEmail">E-posta</label>
+      <input id="gEmail" type="email" autocomplete="email" placeholder="ornek@mail.com">
+    </div>
+    <div class="field">
+      <label for="gPass">Şifre</label>
+      <input id="gPass" type="password" autocomplete="current-password" placeholder="en az 6 karakter">
+    </div>
+    <label class="remember"><input type="checkbox" id="gRemember" checked> Beni hatırla (bu cihazda otomatik giriş)</label>
+    <p class="gate-err" id="gateErr" hidden></p>
+    <button type="button" class="primary gate-submit" id="gSubmit">Giriş yap</button>
+    <div class="gate-foot"><button type="button" class="link-btn" id="gForgot">Şifremi unuttum</button></div>
+    <div class="gate-foot"><button type="button" class="link-btn" id="gOffline" hidden>Çevrimdışı devam et (yalnızca bu cihaz)</button></div>
+    <p class="gate-note">Her kullanıcının listesi kendine özeldir. "Beni hatırla" açıkken bir daha giriş ekranı görmezsin.</p>
+  </div>
+</div>
+
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -183,6 +252,13 @@
       <div class="stat"><span class="num" id="statStreak">0</span><span class="lbl">Seri</span></div>
     </div>
   </header>
+
+  <div class="acct" id="acctBar" hidden>
+    <span class="sync-dot" id="acctDot"></span>
+    <span class="acct-email" id="acctEmail"></span>
+    <span class="acct-state" id="acctLabel"></span>
+    <button class="link-btn" id="signOutBtn">Çıkış yap</button>
+  </div>
 
   <nav class="tabs">
     <button data-tab="review" class="active">Tekrar</button>
@@ -226,12 +302,6 @@
     </div>
     <div id="wordList"></div>
 
-    <div class="sync-box" id="syncBox">
-      <div class="sync-head"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">Senkron kapalı</span></div>
-      <div class="sync-body" id="syncBody"></div>
-      <p class="sync-hint" id="syncHint"></p>
-    </div>
-
     <div class="settings-bar">
       <div class="grp">Aksan
         <div class="seg" id="accentSeg">
@@ -252,7 +322,7 @@
     </div>
   </section>
 
-  <footer>Verilerin bu cihazda saklanır · senkron açıksa buluta da yedeklenir</footer>
+  <footer>Verilerin bu cihazda saklanır · giriş yaptıysan hesabınla eşitlenir</footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -275,7 +345,8 @@
     appId: "1:1007422985444:web:4704a5226ca09facdc88f1"
   };
 
-  var SYNC={code:null,fs:null,docRef:null,unsub:null,status:"off",applyingRemote:false,saveTimer:null};
+  var CLOUD={ready:false,authMod:null,auth:null,fs:null,db:null,user:null,docRef:null,unsub:null,
+             status:"off",applyingRemote:false,saveTimer:null};
 
   /* ---------- Storage ---------- */
   var KEY="kelime-tekrar-v1",mem=null;
@@ -289,7 +360,7 @@
     var data={cards:state.cards,meta:state.meta};
     if(LS){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){mem=data;}}else mem=data;
   }
-  function persist(){persistLocal();if(!SYNC.applyingRemote)pushToCloud();}
+  function persist(){persistLocal();if(!CLOUD.applyingRemote)pushToCloud();}
 
   /* ---------- State ---------- */
   var DAY=86400000;
@@ -608,18 +679,76 @@
     if(confirm("Tüm kelimeler ve ilerleme silinsin mi? Bu geri alınamaz.")){state.cards=[];state.meta.streak=0;state.meta.lastReviewDate=null;persist();renderAll();toast("Temizlendi");}
   });
 
-  /* ---------- Cloud sync (Firebase) ---------- */
-  function syncConfigured(){return !!(FIREBASE_CONFIG&&FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId);}
-  function genCode(){var a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<10;i++)s+=a[Math.floor(Math.random()*a.length)];return s;}
-  function setSyncStatus(s){SYNC.status=s;updateSyncUI();}
+  /* ---------- Hesap + bulut senkron (Firebase) ---------- */
+  function el(id){return document.getElementById(id);}
+  function cloudConfigured(){return !!(FIREBASE_CONFIG&&FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId);}
+  function setSyncStatus(s){CLOUD.status=s;updateAccountUI();}
 
-  function initSync(){
-    if(!syncConfigured()){setSyncStatus("off");return;}
-    SYNC.code=(localStorage.getItem("kt-sync-code")||"").toUpperCase();
-    if(!SYNC.code){setSyncStatus("nocode");return;}
-    connectFirebase();
+  /* --- giriş ekranı --- */
+  var gateMode="signin";
+  function showGate(loading){
+    var g=el("authGate");if(!g)return;
+    g.hidden=false;
+    el("gateLoading").hidden=!loading;
+    el("gateCard").hidden=!!loading;
+    if(!loading){
+      var rem=localStorage.getItem("kt-remember");
+      el("gRemember").checked=(rem===null||rem==="1");
+      gateBusy(false);
+    }
   }
-  function connectFirebase(){
+  function hideGate(){var g=el("authGate");if(g)g.hidden=true;}
+  function gateErr(msg){
+    var e=el("gateErr");if(!e)return;
+    if(!msg){e.hidden=true;e.textContent="";return;}
+    e.textContent=msg;e.hidden=false;
+  }
+  function gateBusy(on){
+    var b=el("gSubmit"),g=el("gGoogle");
+    if(!b)return;
+    b.disabled=!!on;g.disabled=!!on;
+    b.style.opacity=on?".6":"";g.style.opacity=on?".6":"";
+    b.textContent=on?"Bekle…":(gateMode==="signup"?"Hesap oluştur":"Giriş yap");
+  }
+  function setGateMode(mode){
+    gateMode=mode;
+    var seg=el("gateSeg");
+    if(seg)seg.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-mode")===mode);});
+    el("gPass").setAttribute("autocomplete",mode==="signup"?"new-password":"current-password");
+    el("gForgot").hidden=(mode==="signup");
+    el("gateSub").textContent=(mode==="signup")
+      ? "Yeni hesap oluştur — kelimelerin ve tekrar ilerlemen bu hesaba kaydedilir."
+      : "Devam etmek için giriş yap — kelimelerin ve tekrar ilerlemen hesabına kaydedilir.";
+    gateErr("");gateBusy(false);
+  }
+  function authErrMsg(c){
+    var m={
+      "auth/invalid-email":"Geçersiz e-posta adresi.",
+      "auth/missing-password":"Şifre gir.",
+      "auth/weak-password":"Şifre en az 6 karakter olmalı.",
+      "auth/email-already-in-use":"Bu e-posta zaten kayıtlı — \"Giriş yap\" sekmesini kullan.",
+      "auth/invalid-credential":"E-posta veya şifre hatalı.",
+      "auth/wrong-password":"E-posta veya şifre hatalı.",
+      "auth/user-not-found":"Böyle bir hesap yok — önce \"Hesap oluştur\" de.",
+      "auth/too-many-requests":"Çok fazla deneme yapıldı, biraz bekleyip tekrar dene.",
+      "auth/network-request-failed":"Bağlantı kurulamadı, interneti kontrol et.",
+      "auth/popup-closed-by-user":"Google penceresi kapatıldı.",
+      "auth/cancelled-popup-request":"",
+      "auth/operation-not-allowed":"Bu giriş yöntemi Firebase'de açık değil."
+    };
+    if(m[c]!==undefined)return m[c];
+    return "İşlem tamamlanamadı ("+c+")";
+  }
+  function applyPersistence(){
+    var m=CLOUD.authMod,rem=el("gRemember")?el("gRemember").checked:true;
+    try{localStorage.setItem("kt-remember",rem?"1":"0");}catch(e){}
+    return m.setPersistence(CLOUD.auth,rem?m.browserLocalPersistence:m.browserSessionPersistence)
+            .catch(function(){});
+  }
+
+  function initCloud(){
+    if(!cloudConfigured()){setSyncStatus("off");return;}
+    showGate(true);
     setSyncStatus("connecting");
     Promise.all([
       import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
@@ -628,73 +757,177 @@
     ]).then(function(mods){
       var appMod=mods[0],authMod=mods[1],fsMod=mods[2];
       var app=(appMod.getApps&&appMod.getApps().length)?appMod.getApp():appMod.initializeApp(FIREBASE_CONFIG);
-      var auth=authMod.getAuth(app);
-      return authMod.signInAnonymously(auth).then(function(){
-        var db=fsMod.getFirestore(app);
-        SYNC.fs=fsMod;SYNC.docRef=fsMod.doc(db,"decks",SYNC.code);
-        if(SYNC.unsub){SYNC.unsub();SYNC.unsub=null;}
-        SYNC.unsub=fsMod.onSnapshot(SYNC.docRef,function(snap){
-          if(!snap.exists()){pushToCloud();return;}
-          if(snap.metadata&&snap.metadata.hasPendingWrites){setSyncStatus("ok");return;}
-          applyRemote(snap.data());setSyncStatus("ok");
-        },function(){setSyncStatus("error");});
+      CLOUD.authMod=authMod;CLOUD.fs=fsMod;
+      CLOUD.auth=authMod.getAuth(app);
+      CLOUD.db=fsMod.getFirestore(app);
+      CLOUD.ready=true;
+      wireGate();
+      authMod.getRedirectResult(CLOUD.auth).catch(function(err){
+        gateErr(authErrMsg((err&&err.code)||""));
       });
-    }).catch(function(){setSyncStatus("error");});
+      authMod.onAuthStateChanged(CLOUD.auth,function(user){
+        if(user){hideGate();attachUser(user);}
+        else{detachUser();showGate(false);}
+      });
+    }).catch(function(){
+      showGate(false);
+      gateErr("Sunucuya bağlanılamadı. İnterneti kontrol edip sayfayı yenile.");
+      var off=el("gOffline");
+      if(off){off.hidden=false;off.onclick=function(){hideGate();toast("Çevrimdışı mod — değişiklikler yalnızca bu cihazda");};}
+      setSyncStatus("error");
+    });
   }
+
+  var gateWired=false;
+  function wireGate(){
+    if(gateWired)return;gateWired=true;
+    var seg=el("gateSeg");
+    if(seg)seg.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){setGateMode(b.getAttribute("data-mode"));});
+    });
+    el("gGoogle").addEventListener("click",signInGoogle);
+    el("gSubmit").addEventListener("click",gateSubmit);
+    el("gForgot").addEventListener("click",forgotPassword);
+    ["gEmail","gPass"].forEach(function(id){
+      el(id).addEventListener("keydown",function(e){if(e.key==="Enter")gateSubmit();});
+    });
+    setGateMode("signin");
+  }
+
+  function signInGoogle(){
+    if(!CLOUD.ready)return;
+    var m=CLOUD.authMod,provider=new m.GoogleAuthProvider();
+    provider.setCustomParameters({prompt:"select_account"});
+    gateErr("");gateBusy(true);
+    applyPersistence().then(function(){
+      return m.signInWithPopup(CLOUD.auth,provider);
+    }).catch(function(err){
+      var c=(err&&err.code)||"";
+      if(c==="auth/popup-blocked"||c==="auth/operation-not-supported-in-this-environment"){
+        m.signInWithRedirect(CLOUD.auth,provider);return;
+      }
+      gateBusy(false);gateErr(authErrMsg(c));
+    });
+  }
+
+  function gateSubmit(){
+    if(!CLOUD.ready)return;
+    var m=CLOUD.authMod;
+    var email=(el("gEmail").value||"").trim(),pass=el("gPass").value||"";
+    if(!email){gateErr("E-posta gir.");return;}
+    if(pass.length<6){gateErr("Şifre en az 6 karakter olmalı.");return;}
+    gateErr("");gateBusy(true);
+    applyPersistence().then(function(){
+      return gateMode==="signup"
+        ? m.createUserWithEmailAndPassword(CLOUD.auth,email,pass)
+        : m.signInWithEmailAndPassword(CLOUD.auth,email,pass);
+    }).catch(function(err){
+      gateBusy(false);gateErr(authErrMsg((err&&err.code)||""));
+    });
+  }
+
+  function forgotPassword(){
+    if(!CLOUD.ready)return;
+    var email=(el("gEmail").value||"").trim();
+    if(!email){gateErr("Önce e-posta adresini yaz, sonra buna bas.");return;}
+    CLOUD.authMod.sendPasswordResetEmail(CLOUD.auth,email).then(function(){
+      gateErr("");toast("Şifre sıfırlama bağlantısı e-postana gönderildi");
+    }).catch(function(err){gateErr(authErrMsg((err&&err.code)||""));});
+  }
+
+  function signOutNow(){
+    if(!CLOUD.ready)return;
+    CLOUD.authMod.signOut(CLOUD.auth).catch(function(){});
+  }
+
+  function detachUser(){
+    if(CLOUD.unsub){CLOUD.unsub();CLOUD.unsub=null;}
+    CLOUD.docRef=null;CLOUD.user=null;
+    setSyncStatus("signedout");
+  }
+
+  function attachUser(user){
+    CLOUD.user=user;
+    var prevUid=localStorage.getItem("kt-uid")||"";
+    if(prevUid&&prevUid!==user.uid){
+      /* bu tarayıcıda başka bir hesap kullanılmış: yerel listeyi yeni hesaba taşıma */
+      CLOUD.applyingRemote=true;
+      state.cards=[];state.meta.streak=0;state.meta.lastReviewDate=null;
+      persistLocal();renderAll();
+      CLOUD.applyingRemote=false;
+    }
+    var mergeOnce=!prevUid; /* bu tarayıcıda ilk giriş: yereldeki kelimeler kaybolmasın */
+    localStorage.setItem("kt-uid",user.uid);
+    setSyncStatus("connecting");
+    CLOUD.docRef=CLOUD.fs.doc(CLOUD.db,"users",user.uid);
+    if(CLOUD.unsub){CLOUD.unsub();CLOUD.unsub=null;}
+    CLOUD.unsub=CLOUD.fs.onSnapshot(CLOUD.docRef,function(snap){
+      if(!snap.exists()){mergeOnce=false;pushToCloud(true);setSyncStatus("ok");return;}
+      if(snap.metadata&&snap.metadata.hasPendingWrites){setSyncStatus("ok");return;}
+      var data=snap.data();
+      if(mergeOnce){
+        mergeOnce=false;
+        var remote=(data&&Array.isArray(data.cards))?data.cards.map(normalize):[];
+        var seen={};remote.forEach(function(c){seen[String(c.en||"").toLowerCase()]=1;});
+        var extras=state.cards.filter(function(c){return !seen[String(c.en||"").toLowerCase()];});
+        if(extras.length){
+          CLOUD.applyingRemote=true;
+          state.cards=remote.concat(extras);
+          if(data.meta){
+            if(data.meta.streak!=null)state.meta.streak=data.meta.streak;
+            if(data.meta.lastReviewDate!=null)state.meta.lastReviewDate=data.meta.lastReviewDate;
+          }
+          persistLocal();renderAll();
+          CLOUD.applyingRemote=false;
+          pushToCloud(true);
+          toast("Bu cihazdaki "+extras.length+" kelime hesabına eklendi");
+          setSyncStatus("ok");return;
+        }
+      }
+      applyRemote(data);setSyncStatus("ok");
+    },function(){setSyncStatus("error");});
+  }
+
   function applyRemote(data){
     if(!data||!Array.isArray(data.cards))return;
-    SYNC.applyingRemote=true;
+    CLOUD.applyingRemote=true;
     state.cards=data.cards.map(normalize);
     if(data.meta){
       if(data.meta.streak!=null)state.meta.streak=data.meta.streak;
       if(data.meta.lastReviewDate!=null)state.meta.lastReviewDate=data.meta.lastReviewDate;
     }
     persistLocal();renderAll();
-    SYNC.applyingRemote=false;
+    CLOUD.applyingRemote=false;
   }
-  function pushToCloud(){
-    if(!SYNC.docRef||!SYNC.fs)return;
-    clearTimeout(SYNC.saveTimer);
-    SYNC.saveTimer=setTimeout(function(){
-      SYNC.fs.setDoc(SYNC.docRef,{cards:state.cards,meta:{streak:state.meta.streak,lastReviewDate:state.meta.lastReviewDate},updated:Date.now()})
-        .then(function(){setSyncStatus("ok");}).catch(function(){setSyncStatus("error");});
-    },600);
-  }
-  function connectSync(code){SYNC.code=code.toUpperCase().trim();localStorage.setItem("kt-sync-code",SYNC.code);connectFirebase();}
-  function disconnectSync(){if(SYNC.unsub){SYNC.unsub();SYNC.unsub=null;}SYNC.docRef=null;SYNC.code=null;localStorage.removeItem("kt-sync-code");setSyncStatus(syncConfigured()?"nocode":"off");}
 
-  function updateSyncUI(){
-    var box=document.getElementById("syncBox");if(!box)return;
-    var dot=document.getElementById("syncDot"),label=document.getElementById("syncLabel"),
-        body=document.getElementById("syncBody"),hint=document.getElementById("syncHint");
+  function pushToCloud(immediate){
+    if(!CLOUD.docRef||!CLOUD.fs)return;
+    clearTimeout(CLOUD.saveTimer);
+    var run=function(){
+      CLOUD.fs.setDoc(CLOUD.docRef,{
+        cards:state.cards,
+        meta:{streak:state.meta.streak,lastReviewDate:state.meta.lastReviewDate},
+        updated:Date.now()
+      }).then(function(){setSyncStatus("ok");}).catch(function(){setSyncStatus("error");});
+    };
+    if(immediate)run();else CLOUD.saveTimer=setTimeout(run,600);
+  }
+
+  function updateAccountUI(){
+    var bar=el("acctBar");if(!bar)return;
+    if(!cloudConfigured()||!CLOUD.user){bar.hidden=true;return;}
+    bar.hidden=false;
+    var dot=el("acctDot"),label=el("acctLabel");
     dot.className="sync-dot";
-    if(!syncConfigured()){
-      label.textContent="Senkron kapalı";body.innerHTML="";
-      hint.innerHTML="Telefon–bilgisayar otomatik senkronu için Firebase kurulumu gerekiyor (bir kez). Adımlar sohbetteki mesajımda; bilgileri dosyaya ekleyip GitHub'a yeniden yükleyince burası aktifleşir.";
-      return;
-    }
-    var st=SYNC.status;
-    if(st==="connecting"){dot.classList.add("busy");label.textContent="Bağlanıyor…";}
+    var st=CLOUD.status;
+    if(st==="connecting"){dot.classList.add("busy");label.textContent="Eşitleniyor…";}
     else if(st==="ok"){dot.classList.add("ok");label.textContent="Eşitlendi";}
     else if(st==="error"){dot.classList.add("err");label.textContent="Bağlantı hatası";}
-    else{label.textContent="Senkron hazır";}
-    var connected=SYNC.code&&(st==="ok"||st==="connecting"||st==="error");
-    if(connected){
-      body.innerHTML='<span class="code-pill">'+esc(SYNC.code)+'</span>'+
-        '<button class="ghost" id="syncCopy">Kodu kopyala</button>'+
-        '<button class="link-btn" id="syncOff">Bağlantıyı kes</button>';
-      document.getElementById("syncCopy").onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(SYNC.code);toast("Kod kopyalandı");};
-      document.getElementById("syncOff").onclick=disconnectSync;
-      hint.innerHTML="Telefonda aynı adresi aç ve <b>aynı kodu</b> gir — kelimelerin otomatik senkronlanır. Kodu bilen herkes listeni görebilir, gizli tut.";
-    }else{
-      body.innerHTML='<input id="syncCodeInput" placeholder="senkron kodu" value="'+esc(SYNC.code||"")+'">'+
-        '<button class="ghost" id="syncConnect">Bağlan</button>'+
-        '<button class="link-btn" id="syncGen">kod üret</button>';
-      document.getElementById("syncGen").onclick=function(){document.getElementById("syncCodeInput").value=genCode();};
-      document.getElementById("syncConnect").onclick=function(){var v=document.getElementById("syncCodeInput").value.trim();if(!v){toast("Bir kod gir ya da üret");return;}connectSync(v);};
-      hint.innerHTML="İlk cihazda <b>kod üret → Bağlan</b>. Sonra telefonda aynı kodu gir. Not: bağlanınca bu cihazdaki liste, o koddaki bulut verisiyle değişebilir — ilk bağlanışı kelimelerin olduğu cihazdan yap.";
-    }
+    else{label.textContent="";}
+    el("acctEmail").textContent=CLOUD.user.email||CLOUD.user.displayName||"hesabın";
   }
+  var soBtn=document.getElementById("signOutBtn");
+  if(soBtn)soBtn.addEventListener("click",signOutNow);
 
   /* ---------- Tabs ---------- */
   document.querySelectorAll("nav.tabs button").forEach(function(b){b.addEventListener("click",function(){switchTab(b.getAttribute("data-tab"));});});
@@ -704,7 +937,7 @@
     document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active");});
     document.getElementById("view-"+tab).classList.add("active");
     if(tab==="review")renderReview();
-    if(tab==="list"){renderList();updateSyncUI();}
+    if(tab==="list")renderList();
   }
 
   /* ---------- Keyboard ---------- */
@@ -725,8 +958,7 @@
   function renderAll(){updateStats();renderReview();renderList();}
   setExamples([]);
   renderAll();
-  updateSyncUI();
-  initSync();
+  initCloud();
 })();
 </script>
 </body>
