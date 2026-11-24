@@ -163,6 +163,39 @@
 
   [hidden]{display:none!important}
 
+  /* ---- Öğren modu ---- */
+  .lp-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .lp-head b{color:var(--ink);font-family:var(--mono)}
+  .bar{height:8px;background:var(--line);border-radius:20px;overflow:hidden;margin-bottom:18px}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:20px;transition:width .3s}
+  .intro-list{display:flex;flex-direction:column;gap:8px}
+  .intro-row{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;text-align:left;width:100%;font-family:var(--body);color:var(--ink);transition:.14s}
+  .intro-row:hover{border-color:var(--accent)}
+  .intro-row .ir-en{font-family:var(--disp);font-weight:700;font-size:20px;line-height:1.2}
+  .intro-row .ir-tr{font-size:15px;font-weight:600;color:var(--accent)}
+  .intro-row .ir-ex{font-size:13.5px;color:var(--muted);font-style:italic;margin-top:3px}
+  .intro-row .ir-ex b{color:var(--ink);font-style:normal}
+  .intro-row .ex-speak{margin-top:2px}
+  .quiz{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 24px 26px;text-align:center}
+  .quiz .word{font-size:clamp(30px,6vw,44px)}
+  .quiz .speak{margin:14px auto 0;width:46px;height:46px}
+  .quiz .speak svg{width:20px;height:20px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:20px}
+  .opt{border:1.5px solid var(--line);background:var(--card);border-radius:13px;padding:14px 12px;font-family:var(--body);font-size:15.5px;font-weight:600;color:var(--ink);cursor:pointer;text-align:left;display:flex;gap:10px;align-items:center;transition:.12s}
+  .opt:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+  .opt kbd{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 6px;flex:none}
+  .opt.ok{border-color:var(--good);background:#E6F6EE}
+  .opt.bad{border-color:var(--again);background:#FDECEC}
+  .opt:disabled{cursor:default}
+  .fb{margin-top:16px;padding:14px;border-radius:12px;background:#FDECEC;text-align:left;font-size:14.5px}
+  .fb .fb-ans{font-weight:700}
+  .fb .fb-ex{color:var(--muted);font-style:italic;margin-top:4px}
+  .fb .fb-ex b{color:var(--ink);font-style:normal}
+  .goal-seg{margin-top:4px}
+  .more-ex{margin-top:10px}
+  .example.hide{display:none}
+  @media (max-width:520px){.opts{grid-template-columns:1fr}}
+
   /* ---- giriş ekranı ---- */
   .gate{position:fixed;inset:0;z-index:90;background:var(--paper);display:grid;place-items:center;
     padding:20px;overflow:auto}
@@ -247,7 +280,8 @@
       <span class="sub">Aralıklı tekrar · İngilizce seslendirme</span>
     </div>
     <div class="stats">
-      <div class="stat due"><span class="num" id="statDue">0</span><span class="lbl">Sırada</span></div>
+      <div class="stat due"><span class="num" id="statToday">0/20</span><span class="lbl">Bugün</span></div>
+      <div class="stat"><span class="num" id="statDue">0</span><span class="lbl">Tekrar</span></div>
       <div class="stat"><span class="num" id="statTotal">0</span><span class="lbl">Kelime</span></div>
       <div class="stat"><span class="num" id="statStreak">0</span><span class="lbl">Seri</span></div>
     </div>
@@ -261,12 +295,14 @@
   </div>
 
   <nav class="tabs">
-    <button data-tab="review" class="active">Tekrar</button>
+    <button data-tab="learn" class="active">Öğren</button>
+    <button data-tab="review">Tekrar</button>
     <button data-tab="add">Ekle</button>
     <button data-tab="list">Kelimeler</button>
   </nav>
 
-  <section class="view active" id="view-review"><div id="reviewArea"></div></section>
+  <section class="view active" id="view-learn"><div id="learnArea"></div></section>
+  <section class="view" id="view-review"><div id="reviewArea"></div></section>
 
   <section class="view" id="view-add">
     <div class="panel">
@@ -307,6 +343,11 @@
         <div class="seg" id="accentSeg">
           <button data-acc="en-US" class="on">US</button>
           <button data-acc="en-GB">UK</button>
+        </div>
+      </div>
+      <div class="grp">Günlük hedef
+        <div class="seg" id="goalSeg">
+          <button data-goal="10">10</button><button data-goal="20" class="on">20</button><button data-goal="30">30</button><button data-goal="40">40</button>
         </div>
       </div>
       <div class="grp">Hız
@@ -364,7 +405,7 @@
 
   /* ---------- State ---------- */
   var DAY=86400000;
-  var state={cards:[],meta:{lastReviewDate:null,streak:0,accent:"en-US",rate:0.95}};
+  var state={cards:[],meta:{lastReviewDate:null,streak:0,accent:"en-US",rate:0.95,dailyGoal:20,learnDay:null,learnedToday:0}};
   var saved=load();
   if(saved){
     state.cards=(saved.cards||[]).map(normalize);
@@ -472,7 +513,8 @@
     if(last===t)return;if(last===t-DAY)state.meta.streak=(state.meta.streak||0)+1;else state.meta.streak=1;
     state.meta.lastReviewDate=t;
   }
-  function dueQueue(){var now=Date.now();return state.cards.filter(function(c){return c.due<=now;}).sort(function(a,b){return a.due-b.due;});}
+  function isNew(c){return c.reps===0&&c.stage==="learn";}
+  function dueQueue(){var now=Date.now();return state.cards.filter(function(c){return !isNew(c)&&c.due<=now;}).sort(function(a,b){return a.due-b.due;});}
 
   /* ---------- TTS ---------- */
   var voices=[],isSpeaking=false;
@@ -517,9 +559,13 @@
       document.getElementById("goAdd").addEventListener("click",function(){switchTab("add");});return;
     }
     if(!queue.length){
-      reviewArea.innerHTML='<div class="empty"><div class="mini">✓</div><h2 class="big">Bugünlük bu kadar</h2>'+
-        '<p>Sıradaki tekrar zamanı gelince kelimeler burada belirir.</p><button class="ghost" id="goList">Kelimelere bak</button></div>';
-      document.getElementById("goList").addEventListener("click",function(){switchTab("list");});return;
+      current=null;
+      var nn=newPool().length;
+      reviewArea.innerHTML='<div class="empty"><div class="mini">✓</div><h2 class="big">Tekrar edilecek kelime yok</h2>'+
+        '<p>'+(nn?nn+' yeni kelime öğrenilmeyi bekliyor.':'Sıradaki tekrar zamanı gelince kelimeler burada belirir.')+'</p>'+
+        (nn?'<button class="primary" id="goLearn">Öğrenmeye geç</button>':'<button class="ghost" id="goList">Kelimelere bak</button>')+'</div>';
+      var gl=document.getElementById("goLearn");if(gl)gl.addEventListener("click",function(){switchTab("learn");});
+      var gi=document.getElementById("goList");if(gi)gi.addEventListener("click",function(){switchTab("list");});return;
     }
     current=queue[0];showingBack=false;drawCard();
   }
@@ -527,8 +573,8 @@
     var c=current,exHtml="";
     if(c.examples&&c.examples.length){
       exHtml='<div class="examples">'+c.examples.map(function(s,i){
-        return '<p class="example"><button class="ex-speak" data-exi="'+i+'" title="Cümleyi dinle">'+SPKm+'</button><span>'+fmtExample(s)+'</span></p>';
-      }).join("")+'</div>';
+        return '<p class="example'+(i>0?' hide':'')+'"><button class="ex-speak" data-exi="'+i+'" title="Cümleyi dinle">'+SPKm+'</button><span>'+fmtExample(s)+'</span></p>';
+      }).join("")+(c.examples.length>1?'<button class="link-btn more-ex" id="moreEx">+'+(c.examples.length-1)+' cümle daha</button>':'')+'</div>';
     }
     reviewArea.innerHTML='<div class="card-stage"><div class="flashcard" id="fc">'+
         '<div class="face front"><div class="eyebrow">İngilizce</div><h2 class="word">'+esc(c.en)+'</h2>'+
@@ -541,6 +587,8 @@
     reviewArea.querySelectorAll(".ex-speak").forEach(function(b){
       b.addEventListener("click",function(e){e.stopPropagation();toggleSpeak(plain(c.examples[+b.getAttribute("data-exi")]),b);});
     });
+    var me=document.getElementById("moreEx");
+    if(me)me.addEventListener("click",function(e){e.stopPropagation();reviewArea.querySelectorAll(".example.hide").forEach(function(p){p.classList.remove("hide");});me.remove();});
     renderControls();startSpeak(c.en,document.getElementById("spkFront"));
   }
   function renderControls(){
@@ -563,9 +611,150 @@
 
   function updateStats(){
     document.getElementById("statDue").textContent=dueQueue().length;
+    document.getElementById("statToday").textContent=learnedToday()+"/"+goal();
     document.getElementById("statTotal").textContent=state.cards.length;
     document.getElementById("statStreak").textContent=state.meta.streak||0;
   }
+
+  /* ---------- Öğren: 5'erli grup + çoktan seçmeli test ---------- */
+  var learnArea=document.getElementById("learnArea");
+  var BATCH=5,L=null;
+  function todayT(){var d=new Date();d.setHours(0,0,0,0);return d.getTime();}
+  function goal(){return state.meta.dailyGoal||20;}
+  function learnedToday(){return state.meta.learnDay===todayT()?(state.meta.learnedToday||0):0;}
+  function newPool(){return state.cards.filter(isNew).sort(function(a,b){return a.due-b.due;});}
+  function byId(id){return state.cards.find(function(x){return x.id===id;});}
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function learnHead(){
+    var d=learnedToday(),g=goal(),pct=Math.min(100,Math.round(d/g*100));
+    return '<div class="lp-head"><span>Günlük hedef</span><span><b>'+d+'</b> / '+g+' kelime</span></div><div class="bar"><i style="width:'+pct+'%"></i></div>';
+  }
+  function renderLearn(){
+    updateStats();
+    if(L&&L.phase==="intro")return drawIntro();
+    if(L&&L.phase==="quiz")return drawQuiz();
+    if(L&&L.phase==="done")return drawDone();
+    var pool=newPool();
+    if(!pool.length){
+      learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">✎</div><h2 class="big">Yeni kelime yok</h2><p>Öğrenmek için kelime ekle.</p><button class="primary" id="lgAdd">Kelime ekle</button></div>';
+      el("lgAdd").addEventListener("click",function(){switchTab("add");});return;
+    }
+    var reached=learnedToday()>=goal();
+    learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">'+(reached?'✓':'⚡')+'</div>'+
+      '<h2 class="big">'+(reached?'Günlük hedef tamam':'Sıradaki '+Math.min(BATCH,pool.length)+' kelime')+'</h2>'+
+      '<p>Kelimelere hızlıca göz at → anlamını seç → İngilizcesini seç. Bilemediklerin tekrar sorulur.<br>'+pool.length+' yeni kelime bekliyor.</p>'+
+      '<button class="primary" id="lgStart">'+(reached?'5 kelime daha':'Başla')+'</button>'+
+      '<p class="kbd-hint"><kbd>Enter</kbd> başla</p></div>';
+    el("lgStart").addEventListener("click",startBatch);
+  }
+  function startBatch(){
+    var pool=newPool().slice(0,BATCH);if(!pool.length){L=null;renderLearn();return;}
+    L={phase:"intro",ids:pool.map(function(c){return c.id;}),queue:[],miss:{},done:0,total:0,cur:null};
+    drawIntro();
+  }
+  function drawIntro(){
+    var cards=L.ids.map(byId).filter(Boolean);
+    learnArea.innerHTML=learnHead()+'<div class="intro-list">'+cards.map(function(c){
+      var ex=(c.examples&&c.examples[0])?'<div class="ir-ex">'+fmtExample(c.examples[0])+'</div>':'';
+      return '<button class="intro-row" data-sp="'+c.id+'"><span class="ex-speak">'+SPKm+'</span><span><div class="ir-en">'+esc(c.en)+'</div><div class="ir-tr">'+esc(c.tr)+'</div>'+ex+'</span></button>';
+    }).join("")+'</div><button class="reveal-btn" id="lgQuiz">Teste geç</button>'+
+    '<p class="kbd-hint">Satıra tıkla → dinle · <kbd>Enter</kbd> teste geç</p>';
+    learnArea.querySelectorAll("[data-sp]").forEach(function(b){b.addEventListener("click",function(){var c=byId(b.getAttribute("data-sp"));if(c)startSpeak(c.en,b.querySelector(".ex-speak"));});});
+    el("lgQuiz").addEventListener("click",startQuiz);
+  }
+  function startQuiz(){
+    stopSpeak();
+    L.queue=shuffle(L.ids).map(function(id){return {id:id,dir:"en"};}).concat(shuffle(L.ids).map(function(id){return {id:id,dir:"tr"};}));
+    L.total=L.queue.length;L.done=0;L.phase="quiz";buildQ();drawQuiz();
+  }
+  function buildQ(){
+    while(L.queue.length&&!byId(L.queue[0].id))L.queue.shift();
+    if(!L.queue.length){L.cur=null;return;}
+    var q=L.queue[0],c=byId(q.id),f=q.dir==="en"?"tr":"en",right=c[f],seen={};
+    seen[right.toLowerCase()]=1;
+    var others=shuffle(state.cards.filter(function(x){return x.id!==c.id;}).map(function(x){return x[f];})).filter(function(v){
+      var k=(v||"").toLowerCase();if(!k||seen[k])return false;seen[k]=1;return true;}).slice(0,3);
+    L.cur={q:q,c:c,opts:shuffle(others.concat([right])),right:right,answered:false,wrong:false};
+  }
+  function drawQuiz(){
+    if(!L.cur){finishBatch();return;}
+    var k=L.cur,c=k.c,en=k.q.dir==="en",pct=Math.round(L.done/L.total*100);
+    learnArea.innerHTML='<div class="lp-head"><span>'+(en?'Anlamı ne?':'İngilizcesi ne?')+'</span><span><b>'+L.done+'</b> / '+L.total+'</span></div><div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="quiz"><h2 class="'+(en?'word':'meaning')+'">'+esc(en?c.en:c.tr)+'</h2>'+
+      (en?'<button class="speak" id="qSpk">'+SPK+'</button>':'')+
+      '<div class="opts">'+k.opts.map(function(o,i){return '<button class="opt" data-i="'+i+'"><kbd>'+(i+1)+'</kbd><span>'+esc(o)+'</span></button>';}).join("")+'</div>'+
+      '<div id="qFb"></div></div><p class="kbd-hint"><kbd>1-4</kbd> seç · <kbd>S</kbd> dinle</p>';
+    learnArea.querySelectorAll(".opt").forEach(function(b){b.addEventListener("click",function(){answer(+b.getAttribute("data-i"));});});
+    if(en){el("qSpk").addEventListener("click",function(){toggleSpeak(c.en,this);});startSpeak(c.en,el("qSpk"));}
+  }
+  function answer(i){
+    var k=L&&L.cur;if(!k||k.answered||i>=k.opts.length)return;
+    k.answered=true;
+    var btns=learnArea.querySelectorAll(".opt"),ri=k.opts.indexOf(k.right);
+    btns.forEach(function(b){b.disabled=true;});
+    btns[ri].classList.add("ok");
+    L.queue.shift();
+    if(i===ri){
+      L.done++;
+      if(k.q.dir==="tr")startSpeak(k.c.en,null);
+      setTimeout(function(){if(L&&L.cur===k)nextQ();},650);
+    }else{
+      btns[i].classList.add("bad");k.wrong=true;
+      L.miss[k.c.id]=(L.miss[k.c.id]||0)+1;
+      L.queue.splice(Math.min(3,L.queue.length),0,k.q); // 3 soru sonra tekrar sor
+      var ex=(k.c.examples&&k.c.examples[0])?'<div class="fb-ex">'+fmtExample(k.c.examples[0])+'</div>':'';
+      el("qFb").innerHTML='<div class="fb"><div class="fb-ans">'+esc(k.c.en)+' = '+esc(k.c.tr)+'</div>'+ex+'</div><button class="reveal-btn" id="qNext">Devam</button>';
+      el("qNext").addEventListener("click",nextQ);
+      startSpeak(k.c.en,null);
+    }
+  }
+  function nextQ(){stopSpeak();buildQ();drawQuiz();}
+  function finishBatch(){
+    var now=Date.now(),n=0,weak=0;
+    L.ids.forEach(function(id){
+      var c=byId(id);if(!c)return;n++;
+      var m=L.miss[id]||0;c.reps=1;
+      if(m===0){c.ease=2.5;graduate(c,1,now);}                 // hatasız: yarın tekrar
+      else{weak++;c.ease=m>=2?2.3:2.5;c.stage="learn";c.step=1;c.due=now+10*MIN;} // hatalı: 10 dk sonra Tekrar'da
+    });
+    var t=todayT();
+    if(state.meta.learnDay!==t){state.meta.learnDay=t;state.meta.learnedToday=0;}
+    state.meta.learnedToday+=n;
+    bumpStreak();persist();
+    L.phase="done";L.result={n:n,weak:weak};drawDone();
+  }
+  function drawDone(){
+    updateStats();
+    var r=L.result,pool=newPool().length,reached=learnedToday()>=goal();
+    learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">✓</div>'+
+      '<h2 class="big">'+(reached?'Günlük hedef tamam!':r.n+' kelime öğrenildi')+'</h2>'+
+      '<p>'+(r.n-r.weak)+' hatasız → yarın tekrar · '+r.weak+' zorlandığın → 10 dk sonra Tekrar sekmesinde</p>'+
+      '<div class="form-actions" style="justify-content:center">'+
+      (pool?'<button class="primary" id="lgNext">'+(reached?'5 kelime daha':'Sonraki 5 kelime')+'</button>':'')+
+      '<button class="ghost" id="lgRev">Tekrar\'a geç</button></div>'+
+      (pool?'<p class="kbd-hint"><kbd>Enter</kbd> sonraki grup</p>':'')+'</div>';
+    if(pool)el("lgNext").addEventListener("click",startBatch);
+    el("lgRev").addEventListener("click",function(){L=null;switchTab("review");});
+  }
+  document.addEventListener("keydown",function(e){
+    if(!el("view-learn").classList.contains("active"))return;
+    var tag=(e.target.tagName||"").toLowerCase();if(tag==="input"||tag==="textarea")return;
+    var go=(e.key==="Enter"||e.key===" ");
+    if(!L){if(e.key==="Enter"&&el("lgStart")){e.preventDefault();startBatch();}return;}
+    if(L.phase==="intro"&&go){e.preventDefault();startQuiz();}
+    else if(L.phase==="done"&&e.key==="Enter"&&el("lgNext")){e.preventDefault();startBatch();}
+    else if(L.phase==="quiz"&&L.cur){
+      if(["1","2","3","4"].indexOf(e.key)>-1){e.preventDefault();answer(+e.key-1);}
+      else if(go&&L.cur.answered&&L.cur.wrong){e.preventDefault();nextQ();}
+      else if(e.key.toLowerCase()==="s"){e.preventDefault();startSpeak(L.cur.c.en,null);}
+    }
+  });
+  document.getElementById("goalSeg").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    state.meta.dailyGoal=+b.getAttribute("data-goal");
+    this.querySelectorAll("button").forEach(function(x){x.classList.toggle("on",x===b);});persist();updateStats();
+  });
+  function syncGoalUI(){document.querySelectorAll("#goalSeg button").forEach(function(b){b.classList.toggle("on",+b.getAttribute("data-goal")===goal());});}
 
   /* ---------- Add / Edit ---------- */
   var editingId=null;
@@ -895,6 +1084,8 @@
     if(data.meta){
       if(data.meta.streak!=null)state.meta.streak=data.meta.streak;
       if(data.meta.lastReviewDate!=null)state.meta.lastReviewDate=data.meta.lastReviewDate;
+      if(data.meta.dailyGoal)state.meta.dailyGoal=data.meta.dailyGoal;
+      if(data.meta.learnDay!=null){state.meta.learnDay=data.meta.learnDay;state.meta.learnedToday=data.meta.learnedToday||0;}
     }
     persistLocal();renderAll();
     CLOUD.applyingRemote=false;
@@ -906,7 +1097,8 @@
     var run=function(){
       CLOUD.fs.setDoc(CLOUD.docRef,{
         cards:state.cards,
-        meta:{streak:state.meta.streak,lastReviewDate:state.meta.lastReviewDate},
+        meta:{streak:state.meta.streak,lastReviewDate:state.meta.lastReviewDate,
+              dailyGoal:goal(),learnDay:state.meta.learnDay,learnedToday:state.meta.learnedToday||0},
         updated:Date.now()
       }).then(function(){setSyncStatus("ok");}).catch(function(){setSyncStatus("error");});
     };
@@ -937,6 +1129,7 @@
     document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active");});
     document.getElementById("view-"+tab).classList.add("active");
     if(tab==="review")renderReview();
+    if(tab==="learn")renderLearn();
     if(tab==="list")renderList();
   }
 
@@ -955,8 +1148,13 @@
   function toast(msg){toastEl.textContent=msg;toastEl.classList.add("show");clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove("show");},2200);}
 
   /* ---------- Init ---------- */
-  function renderAll(){updateStats();renderReview();renderList();}
+  function renderAll(){
+    updateStats();syncGoalUI();renderList();
+    if(el("view-review").classList.contains("active"))renderReview();
+    if(el("view-learn").classList.contains("active")&&(!L||L.phase==="done"))renderLearn();
+  }
   setExamples([]);
+  switchTab(dueQueue().length?"review":"learn");
   renderAll();
   initCloud();
 })();
