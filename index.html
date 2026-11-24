@@ -830,7 +830,7 @@
   /* ---------- Metin oku (Gemini) ---------- */
   var READ=null,KEYK="kt-gemini-key",MODK="kt-gemini-model";
   function gemKey(){try{return localStorage.getItem(KEYK)||"";}catch(e){return "";}}
-  function setGemKey(k){try{if(k)localStorage.setItem(KEYK,k);else localStorage.removeItem(KEYK);localStorage.removeItem(MODK);}catch(e){}}
+  function setGemKey(k){MODELS=null;try{if(k)localStorage.setItem(KEYK,k);else localStorage.removeItem(KEYK);localStorage.removeItem(MODK);}catch(e){}}
   function gemFetch(url,opt){
     opt=opt||{};opt.headers=Object.assign({"x-goog-api-key":gemKey()},opt.headers||{});
     return fetch(url,opt).then(function(r){return r.json().then(function(j){
@@ -838,19 +838,25 @@
       return j;});});
   }
   function verNum(n){var m=n.match(/(\d+(?:\.\d+)?)/);return m?parseFloat(m[1]):0;}
-  function pickModel(){
-    var c="";try{c=localStorage.getItem(MODK)||"";}catch(e){}
-    if(c)return Promise.resolve(c);
+  // uygun modelleri sırala: önce son çalışan, sonra yeni flash'lar, en son lite'lar
+  var MODELS=null;
+  function modelList(){
+    if(MODELS)return Promise.resolve(MODELS);
     return gemFetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200").then(function(j){
       var ms=(j.models||[]).filter(function(m){
-        return (m.supportedGenerationMethods||[]).indexOf("generateContent")>-1&&/flash/i.test(m.name)&&!/lite|image|tts|live|audio|embed|vision|exp|thinking/i.test(m.name);});
+        return (m.supportedGenerationMethods||[]).indexOf("generateContent")>-1&&/flash/i.test(m.name)&&!/image|tts|live|audio|embed|vision|exp|thinking/i.test(m.name);});
       if(!ms.length)throw new Error("Uygun model bulunamadı");
-      ms.sort(function(a,b){var pa=/preview/i.test(a.name)?1:0,pb=/preview/i.test(b.name)?1:0;return pa-pb||verNum(b.name)-verNum(a.name);});
-      var name=ms[0].name;try{localStorage.setItem(MODK,name);}catch(e){}return name;
+      ms.sort(function(a,b){
+        var la=/lite/i.test(a.name)?1:0,lb=/lite/i.test(b.name)?1:0,pa=/preview/i.test(a.name)?1:0,pb=/preview/i.test(b.name)?1:0;
+        return la-lb||pa-pb||verNum(b.name)-verNum(a.name);});
+      var names=ms.map(function(m){return m.name;}),last="";
+      try{last=localStorage.getItem(MODK)||"";}catch(e){}
+      if(last&&names.indexOf(last)>-1){names.splice(names.indexOf(last),1);names.unshift(last);}
+      MODELS=names.slice(0,6);return MODELS;
     });
   }
   function buildPrompt(cards){
-    var n=cards.length,len=n<=6?"120-170":n<=12?"180-240":"240-320";
+    var n=cards.length,len=n<=6?"60-90":n<=12?"110-150":"180-230";
     return "You are an English teacher preparing a Turkish university student for the YDS exam.\n"+
       "Write ONE coherent, academic-style text (B2 level, "+len+" words) on a single topic that naturally uses ALL of the target words below "+
       "(you may inflect them: plural, past tense, -ly, etc.). Use each word in the sense given in Turkish.\n"+
@@ -860,23 +866,44 @@
       "Return ONLY JSON: {\"title\":string,\"text\":string,\"tr\":string,\"questions\":[{\"q\":string,\"options\":[5 strings],\"answer\":number,\"explain\":string}]}\n\n"+
       "Target words:\n"+cards.map(function(c){return "- "+c.en+": "+c.tr;}).join("\n");
   }
-  function generateText(cards,retried){
-    return pickModel().then(function(model){
-      return gemFetch("https://generativelanguage.googleapis.com/v1beta/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({contents:[{role:"user",parts:[{text:buildPrompt(cards)}]}],generationConfig:{responseMimeType:"application/json",temperature:0.9}})});
+  function isBusy(e){return e&&(e.status===503||e.status===500||e.status===429||/high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED/i.test((e.message||"")+(e.reason||"")));}
+  function callModel(model,cards){
+    return gemFetch("https://generativelanguage.googleapis.com/v1beta/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{role:"user",parts:[{text:buildPrompt(cards)}]}],generationConfig:{responseMimeType:"application/json",temperature:0.9}})
     }).then(function(j){
       var t=((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(function(p){return p.text||"";}).join("");
       t=t.replace(/^```(?:json)?\s*/,"").replace(/```\s*$/,"");
       var d=JSON.parse(t);if(!d.text)throw new Error("Boş yanıt");return d;
-    }).catch(function(e){
-      if(!retried&&(e.status===404||(e.status===400&&!/API_KEY/.test(e.reason||"")))){try{localStorage.removeItem(MODK);}catch(x){}return generateText(cards,true);}
-      throw e;
+    });
+  }
+  function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  // sırayla modelleri dene; yoğunsa sonrakine geç, hepsi yoğunsa bir tur daha bekleyip dene
+  function generateText(cards,onStatus){
+    return modelList().then(function(models){
+      var i=0,round=0,lastErr=null;
+      function attempt(){
+        if(i>=models.length){
+          if(round<1&&isBusy(lastErr)){round++;i=0;if(onStatus)onStatus("Tüm modeller yoğun, 4 sn sonra tekrar deneniyor…");return wait(4000).then(attempt);}
+          throw lastErr||new Error("Model yanıt vermedi");
+        }
+        var m=models[i];
+        if(onStatus)onStatus(i===0&&round===0?null:"Yoğunluk var, başka model deneniyor ("+m.replace("models/","")+")…");
+        return callModel(m,cards).then(function(d){try{localStorage.setItem(MODK,m);}catch(e){}return d;})
+          .catch(function(e){
+            lastErr=e;
+            var skip=isBusy(e)||e.status===404||(e.status===400&&!/API_KEY/.test(e.reason||""))||e instanceof SyntaxError||/Boş yanıt/.test(e.message);
+            if(!skip)throw e;
+            i++;return attempt();
+          });
+      }
+      return attempt();
     });
   }
   function gemErr(e){
     var r=(e&&e.reason)||"",m=(e&&e.message)||"";
     if(/API_KEY_INVALID|API key not valid/i.test(r+m))return "API anahtarı geçersiz. Ayarlardan kontrol et.";
     if(e&&e.status===401)return "Google anahtarı reddetti (401). AI Studio'da yeni bir anahtar oluşturup tekrar dene.";
+    if(isBusy(e))return "Gemini şu an çok yoğun. Bir dakika sonra Tekrar dene'ye bas.";
     if(e&&e.status===429)return "Ücretsiz limit doldu, bir dakika bekleyip tekrar dene.";
     if(e&&e.status===403)return "Bu anahtarın Gemini API erişimi yok (403).";
     if(/Failed to fetch|NetworkError/i.test(m))return "Bağlantı kurulamadı, interneti kontrol et.";
@@ -890,9 +917,9 @@
   }
   function loadReading(){
     var cards=READ.ids.map(byId).filter(Boolean);
-    READ.loading=true;READ.err=null;READ.data=null;READ.ans={};drawReading();
+    READ.loading=true;READ.err=null;READ.data=null;READ.ans={};READ.status=null;drawReading();
     var r=READ;
-    generateText(cards).then(function(d){if(READ!==r)return;r.data=d;r.loading=false;drawReading();})
+    generateText(cards,function(msg){if(READ!==r)return;r.status=msg;var w=learnArea.querySelector(".read-wait span:last-child");if(w&&msg)w.textContent=msg;}).then(function(d){if(READ!==r)return;r.data=d;r.loading=false;drawReading();})
       .catch(function(e){if(READ!==r)return;r.err=gemErr(e);r.loading=false;drawReading();});
   }
   function closeReading(){stopSpeak();hideGloss();var b=READ&&READ.back;READ=null;if(b)b();else renderLearn();}
@@ -938,7 +965,7 @@
       el("rBack").addEventListener("click",closeReading);return;
     }
     if(R.loading){
-      learnArea.innerHTML='<div class="read"><div class="read-wait"><span class="spin"></span> '+R.ids.length+' kelimeyle metin yazılıyor…</div></div>';return;
+      learnArea.innerHTML='<div class="read"><div class="read-wait"><span class="spin"></span><span>'+esc(R.status||(R.ids.length+' kelimeyle metin yazılıyor…'))+'</span></div></div>';return;
     }
     if(R.err){
       learnArea.innerHTML='<div class="empty"><div class="mini">!</div><h2 class="big">Metin oluşturulamadı</h2><p>'+esc(R.err)+'</p>'+
