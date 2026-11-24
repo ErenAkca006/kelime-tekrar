@@ -622,7 +622,7 @@
   function todayT(){var d=new Date();d.setHours(0,0,0,0);return d.getTime();}
   function goal(){return state.meta.dailyGoal||20;}
   function learnedToday(){return state.meta.learnDay===todayT()?(state.meta.learnedToday||0):0;}
-  function newPool(){return state.cards.filter(isNew).sort(function(a,b){return a.due-b.due;});}
+  function newPool(){var now=Date.now();return state.cards.filter(function(c){return isNew(c)||c.due<=now;}).sort(function(a,b){return a.due-b.due;});}
   function byId(id){return state.cards.find(function(x){return x.id===id;});}
   function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
   function learnHead(){
@@ -636,13 +636,13 @@
     if(L&&L.phase==="done")return drawDone();
     var pool=newPool();
     if(!pool.length){
-      learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">✎</div><h2 class="big">Yeni kelime yok</h2><p>Öğrenmek için kelime ekle.</p><button class="primary" id="lgAdd">Kelime ekle</button></div>';
+      learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">✎</div><h2 class="big">Bekleyen kelime yok</h2><p>Zamanı gelen kelime kalmadı. Yeni kelime ekleyebilirsin.</p><button class="primary" id="lgAdd">Kelime ekle</button></div>';
       el("lgAdd").addEventListener("click",function(){switchTab("add");});return;
     }
     var reached=learnedToday()>=goal();
     learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">'+(reached?'✓':'⚡')+'</div>'+
       '<h2 class="big">'+(reached?'Günlük hedef tamam':'Sıradaki '+Math.min(BATCH,pool.length)+' kelime')+'</h2>'+
-      '<p>Kelimelere hızlıca göz at → anlamını seç → İngilizcesini seç. Bilemediklerin tekrar sorulur.<br>'+pool.length+' yeni kelime bekliyor.</p>'+
+      '<p>Kelimelere hızlıca göz at → anlamını seç → İngilizcesini seç. Bilemediklerin tekrar sorulur.<br>'+pool.length+' kelime bekliyor.</p>'+
       '<button class="primary" id="lgStart">'+(reached?'5 kelime daha':'Başla')+'</button>'+
       '<p class="kbd-hint"><kbd>Enter</kbd> başla</p></div>';
     el("lgStart").addEventListener("click",startBatch);
@@ -713,9 +713,16 @@
     var now=Date.now(),n=0,weak=0;
     L.ids.forEach(function(id){
       var c=byId(id);if(!c)return;n++;
-      var m=L.miss[id]||0;c.reps=1;
-      if(m===0){c.ease=2.5;graduate(c,1,now);}                 // hatasız: yarın tekrar
-      else{weak++;c.ease=m>=2?2.3:2.5;c.stage="learn";c.step=1;c.due=now+10*MIN;} // hatalı: 10 dk sonra Tekrar'da
+      var m=L.miss[id]||0,wasReview=c.stage==="review";c.reps=(c.reps||0)+1;
+      if(m===0){
+        if(wasReview){c.interval=Math.max(1,Math.round(c.interval*c.ease));c.due=now+c.interval*DAY;} // bildiğin kelime: aralık büyür
+        else graduate(c,Math.max(1,c.pendingInterval||1),now);                                       // yeni/öğreniliyor: yarın
+      }else{
+        weak++;
+        if(wasReview){c.lapses++;c.pendingInterval=Math.max(1,Math.round(c.interval*LAPSE_MULT));}
+        c.ease=Math.max(MIN_EASE,c.ease-(m>=2?0.2:0));
+        c.stage=wasReview?"relearn":"learn";c.step=wasReview?0:1;c.due=now+10*MIN;                  // hatalı: 10 dk sonra Tekrar'da
+      }
     });
     var t=todayT();
     if(state.meta.learnDay!==t){state.meta.learnDay=t;state.meta.learnedToday=0;}
@@ -1154,7 +1161,7 @@
     if(el("view-learn").classList.contains("active")&&(!L||L.phase==="done"))renderLearn();
   }
   setExamples([]);
-  switchTab(dueQueue().length?"review":"learn");
+  switchTab("learn");
   renderAll();
   initCloud();
 })();
