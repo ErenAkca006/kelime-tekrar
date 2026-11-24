@@ -192,6 +192,26 @@
   .fb .fb-ex{color:var(--muted);font-style:italic;margin-top:4px}
   .fb .fb-ex b{color:var(--ink);font-style:normal}
   .goal-seg{margin-top:4px}
+  /* ---- Metin oku ---- */
+  .read{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px 26px 22px}
+  .read h3{font-family:var(--disp);font-weight:700;font-size:23px;margin:0 0 4px;letter-spacing:-.01em}
+  .read-tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px}
+  .read-tools .ghost{padding:8px 13px;font-size:13px}
+  .read-text{font-size:17.5px;line-height:1.85;margin:0}
+  .mk{border:none;background:var(--accent-soft);color:var(--accent);font:inherit;font-weight:600;padding:0 4px;border-radius:5px;cursor:pointer}
+  .mk:hover{background:var(--accent);color:#fff}
+  .read-tr{margin-top:16px;padding:14px 16px;border-radius:12px;background:var(--paper);color:var(--muted);font-size:15px;line-height:1.7}
+  .gloss{position:fixed;z-index:60;background:var(--ink);color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;box-shadow:var(--shadow);max-width:260px;pointer-events:none}
+  .gloss b{font-family:var(--disp)}
+  .rq{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+  .rq-item{margin-bottom:18px}
+  .rq-q{font-weight:600;margin:0 0 8px;font-size:15.5px}
+  .rq-opts{display:flex;flex-direction:column;gap:6px}
+  .rq-opts .opt{padding:10px 12px;font-size:14.5px;font-weight:500}
+  .rq-exp{font-size:13.5px;color:var(--muted);margin-top:7px}
+  .read-wait{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);padding:40px 0}
+  .key-box{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+  .key-box input{flex:1;min-width:220px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-family:var(--mono);font-size:13px;background:var(--paper)}
   .more-ex{margin-top:10px}
   .example.hide{display:none}
   @media (max-width:520px){.opts{grid-template-columns:1fr}}
@@ -353,6 +373,12 @@
       <div class="grp">Hız
         <input type="range" id="rateRange" min="0.6" max="1.2" step="0.05" value="0.95">
         <span id="rateVal" style="font-family:var(--mono);font-size:12px">0.95×</span>
+      </div>
+    </div>
+    <div class="settings-bar">
+      <div class="grp" style="flex:1;min-width:260px">Gemini API anahtarı
+        <input id="gemKey" type="password" placeholder="AQ.… veya AIza…" autocomplete="off" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-family:var(--mono);font-size:12px;background:var(--paper)">
+        <button class="ghost" id="gemSave" style="padding:7px 12px;font-size:13px">Kaydet</button>
       </div>
     </div>
     <div class="data-row">
@@ -641,6 +667,7 @@
 
   function renderLearn(){
     updateStats();
+    if(READ)return drawReading();
     if(L&&L.phase==="intro")return drawIntro();
     if(L&&L.phase==="quiz")return drawQuiz();
     if(L&&L.phase==="done")return drawDone();
@@ -660,7 +687,9 @@
     }
     learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">'+(rv?'↻':nw?'⚡':'✓')+'</div><h2 class="big">'+h+'</h2><p>'+p+'</p>'+
       actions(b,'<kbd>Enter</kbd> ana düğme')+'</div>';
-    wire({lgPrimary:rv?startReview:startBatch,lgNew:startBatch,lgDay:dailyRecap,lgAdd:function(){switchTab("add");}});
+    if(ti)learnArea.querySelector(".form-actions").insertAdjacentHTML("beforeend",btn("lgRead","Bugünün kelimeleriyle metin oku"));
+    wire({lgPrimary:rv?startReview:startBatch,lgNew:startBatch,lgDay:dailyRecap,lgAdd:function(){switchTab("add");},
+      lgRead:function(){openReading(todayIds(),null);}});
   }
   function session(mode,ids){L={mode:mode,phase:"intro",ids:ids,queue:[],miss:{},done:0,total:0,cur:null};}
   function startBatch(){
@@ -759,7 +788,7 @@
   function drawDone(){
     updateStats();
     var r=L.result,mode=L.mode,rv=reviewPool().length,nw=newPool().length,ti=todayIds().length,reached=learnedToday()>=goal();
-    var h,p,b=btn("lgAgain","Aynı kelimeleri tekrar et");
+    var h,p,b=btn("lgAgain","Aynı kelimeleri tekrar et")+btn("lgRead","Metin oku");
     if(mode==="learn"){
       h=reached?'Günlük hedef tamam!':r.n+' kelime öğrenildi';
       p=(r.n-r.weak)+' hatasız → yarın tekrar · '+r.weak+' zorlandığın → 10 dk sonra tekrar';
@@ -777,11 +806,13 @@
     if(primary!==startBatch&&nw&&!rv)b+=btn("lgNew","Yeni kelimeler");
     learnArea.innerHTML=learnHead()+'<div class="empty"><div class="mini">✓</div><h2 class="big">'+h+'</h2><p>'+p+'</p>'+
       actions(b,'<kbd>R</kbd> aynı kelimeler'+(primary?' · <kbd>Enter</kbd> ana düğme':''))+'</div>';
-    wire({lgAgain:repeatBatch,lgPrimary:primary,lgDay:dailyRecap,lgNew:startBatch});
+    var bigIds=(mode==="learn"&&reached&&ti>BATCH)?todayIds():L.ids;
+    wire({lgAgain:repeatBatch,lgPrimary:primary,lgDay:dailyRecap,lgNew:startBatch,lgRead:function(){openReading(bigIds,drawDone);}});
   }
   document.addEventListener("keydown",function(e){
     if(!el("view-learn").classList.contains("active"))return;
     var tag=(e.target.tagName||"").toLowerCase();if(tag==="input"||tag==="textarea")return;
+    if(READ)return;
     var go=(e.key==="Enter"||e.key===" ");
     if(!L||L.phase==="done"){
       if(e.key==="Enter"&&el("lgPrimary")){e.preventDefault();el("lgPrimary").click();}
@@ -795,6 +826,151 @@
       else if(e.key.toLowerCase()==="s"){e.preventDefault();startSpeak(L.cur.c.en,null);}
     }
   });
+
+  /* ---------- Metin oku (Gemini) ---------- */
+  var READ=null,KEYK="kt-gemini-key",MODK="kt-gemini-model";
+  function gemKey(){try{return localStorage.getItem(KEYK)||"";}catch(e){return "";}}
+  function setGemKey(k){try{if(k)localStorage.setItem(KEYK,k);else localStorage.removeItem(KEYK);localStorage.removeItem(MODK);}catch(e){}}
+  function gemFetch(url,opt){
+    opt=opt||{};opt.headers=Object.assign({"x-goog-api-key":gemKey()},opt.headers||{});
+    return fetch(url,opt).then(function(r){return r.json().then(function(j){
+      if(!r.ok){var e=new Error((j.error&&j.error.message)||("HTTP "+r.status));e.status=r.status;e.reason=JSON.stringify(j.error||{});throw e;}
+      return j;});});
+  }
+  function verNum(n){var m=n.match(/(\d+(?:\.\d+)?)/);return m?parseFloat(m[1]):0;}
+  function pickModel(){
+    var c="";try{c=localStorage.getItem(MODK)||"";}catch(e){}
+    if(c)return Promise.resolve(c);
+    return gemFetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200").then(function(j){
+      var ms=(j.models||[]).filter(function(m){
+        return (m.supportedGenerationMethods||[]).indexOf("generateContent")>-1&&/flash/i.test(m.name)&&!/lite|image|tts|live|audio|embed|vision|exp|thinking/i.test(m.name);});
+      if(!ms.length)throw new Error("Uygun model bulunamadı");
+      ms.sort(function(a,b){var pa=/preview/i.test(a.name)?1:0,pb=/preview/i.test(b.name)?1:0;return pa-pb||verNum(b.name)-verNum(a.name);});
+      var name=ms[0].name;try{localStorage.setItem(MODK,name);}catch(e){}return name;
+    });
+  }
+  function buildPrompt(cards){
+    var n=cards.length,len=n<=6?"120-170":n<=12?"180-240":"240-320";
+    return "You are an English teacher preparing a Turkish university student for the YDS exam.\n"+
+      "Write ONE coherent, academic-style text (B2 level, "+len+" words) on a single topic that naturally uses ALL of the target words below "+
+      "(you may inflect them: plural, past tense, -ly, etc.). Use each word in the sense given in Turkish.\n"+
+      "Wrap EVERY occurrence of a target word as {{used form|base}} where base is exactly the target word as listed.\n"+
+      "Then give a natural Turkish translation of the whole text (no markers), and 3 YDS-style reading comprehension questions in English, "+
+      "each with 5 options, the index (0-4) of the correct option, and a one-sentence Turkish explanation.\n"+
+      "Return ONLY JSON: {\"title\":string,\"text\":string,\"tr\":string,\"questions\":[{\"q\":string,\"options\":[5 strings],\"answer\":number,\"explain\":string}]}\n\n"+
+      "Target words:\n"+cards.map(function(c){return "- "+c.en+": "+c.tr;}).join("\n");
+  }
+  function generateText(cards,retried){
+    return pickModel().then(function(model){
+      return gemFetch("https://generativelanguage.googleapis.com/v1beta/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({contents:[{role:"user",parts:[{text:buildPrompt(cards)}]}],generationConfig:{responseMimeType:"application/json",temperature:0.9}})});
+    }).then(function(j){
+      var t=((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(function(p){return p.text||"";}).join("");
+      t=t.replace(/^```(?:json)?\s*/,"").replace(/```\s*$/,"");
+      var d=JSON.parse(t);if(!d.text)throw new Error("Boş yanıt");return d;
+    }).catch(function(e){
+      if(!retried&&(e.status===404||(e.status===400&&!/API_KEY/.test(e.reason||"")))){try{localStorage.removeItem(MODK);}catch(x){}return generateText(cards,true);}
+      throw e;
+    });
+  }
+  function gemErr(e){
+    var r=(e&&e.reason)||"",m=(e&&e.message)||"";
+    if(/API_KEY_INVALID|API key not valid/i.test(r+m))return "API anahtarı geçersiz. Ayarlardan kontrol et.";
+    if(e&&e.status===401)return "Google anahtarı reddetti (401). AI Studio'da yeni bir anahtar oluşturup tekrar dene.";
+    if(e&&e.status===429)return "Ücretsiz limit doldu, bir dakika bekleyip tekrar dene.";
+    if(e&&e.status===403)return "Bu anahtarın Gemini API erişimi yok (403).";
+    if(/Failed to fetch|NetworkError/i.test(m))return "Bağlantı kurulamadı, interneti kontrol et.";
+    return "Metin oluşturulamadı: "+m;
+  }
+  function openReading(ids,back){
+    stopSpeak();
+    READ={ids:ids.slice(),back:back,data:null,err:null,loading:false,showTr:false,ans:{}};
+    if(!gemKey()){drawReading();return;}
+    loadReading();
+  }
+  function loadReading(){
+    var cards=READ.ids.map(byId).filter(Boolean);
+    READ.loading=true;READ.err=null;READ.data=null;READ.ans={};drawReading();
+    var r=READ;
+    generateText(cards).then(function(d){if(READ!==r)return;r.data=d;r.loading=false;drawReading();})
+      .catch(function(e){if(READ!==r)return;r.err=gemErr(e);r.loading=false;drawReading();});
+  }
+  function closeReading(){stopSpeak();hideGloss();var b=READ&&READ.back;READ=null;if(b)b();else renderLearn();}
+  function plainText(t){return (t||"").replace(/\{\{([^|}]+)\|[^}]*\}\}/g,"$1");}
+  function markText(t){
+    return esc(t).replace(/\{\{([^|}]+)\|([^}]*)\}\}/g,function(_,form,base){return '<button class="mk" data-base="'+base+'">'+form+'</button>';}).replace(/\n+/g,"<br><br>");
+  }
+  function cardByBase(base){
+    var b=(base||"").trim().toLowerCase(),cs=READ.ids.map(byId).filter(Boolean);
+    return cs.find(function(c){return c.en.toLowerCase()===b;})||cs.find(function(c){return b.indexOf(c.en.toLowerCase())===0||c.en.toLowerCase().indexOf(b)===0;});
+  }
+  var glossEl=null;
+  function showGloss(btn,c){
+    hideGloss();glossEl=document.createElement("div");glossEl.className="gloss";
+    glossEl.innerHTML='<b>'+esc(c.en)+'</b> — '+esc(c.tr);document.body.appendChild(glossEl);
+    var r=btn.getBoundingClientRect();glossEl.style.left=Math.max(8,Math.min(window.innerWidth-glossEl.offsetWidth-8,r.left))+"px";
+    glossEl.style.top=(r.top-glossEl.offsetHeight-8<8?r.bottom+8:r.top-glossEl.offsetHeight-8)+"px";
+    clearTimeout(showGloss.t);showGloss.t=setTimeout(hideGloss,2600);
+  }
+  function hideGloss(){if(glossEl){glossEl.remove();glossEl=null;}}
+  window.addEventListener("scroll",hideGloss,{passive:true});
+  // uzun metinde Chrome sesi kesmesin diye cümle cümle oku
+  function speakLong(text,btn){
+    if(isSpeaking){stopSpeak();return;}
+    var parts=(text.match(/[^.!?]+[.!?]+["')]*\s*|[^.!?]+$/g)||[text]).map(function(x){return x.trim();}).filter(Boolean),i=0;
+    isSpeaking=true;if(btn)btn.classList.add("speaking");
+    (function next(){
+      if(!isSpeaking||i>=parts.length){isSpeaking=false;if(btn)btn.classList.remove("speaking");return;}
+      var u=new SpeechSynthesisUtterance(parts[i++]);u.lang=state.meta.accent;u.rate=state.meta.rate;
+      var v=pickVoice(state.meta.accent);if(v)u.voice=v;u.onend=next;u.onerror=function(){isSpeaking=false;if(btn)btn.classList.remove("speaking");};
+      speechSynthesis.speak(u);
+    })();
+  }
+  function drawReading(){
+    var R=READ,h="";
+    if(!gemKey()){
+      h='<div class="empty"><div class="mini">🔑</div><h2 class="big">Gemini API anahtarı gerekli</h2>'+
+        '<p>aistudio.google.com → Get API key ile aldığın anahtarı yapıştır. Sadece bu cihazda saklanır.</p>'+
+        '<div class="key-box"><input id="rkKey" type="password" placeholder="AQ.… veya AIza…" autocomplete="off"><button class="primary" id="rkSave">Kaydet ve oluştur</button></div>'+
+        '<div class="form-actions" style="justify-content:center;margin-top:14px"><button class="ghost" id="rBack">Geri</button></div></div>';
+      learnArea.innerHTML=h;
+      el("rkSave").addEventListener("click",function(){var k=el("rkKey").value.trim();if(!k){toast("Anahtarı yapıştır");return;}setGemKey(k);syncKeyUI();loadReading();});
+      el("rBack").addEventListener("click",closeReading);return;
+    }
+    if(R.loading){
+      learnArea.innerHTML='<div class="read"><div class="read-wait"><span class="spin"></span> '+R.ids.length+' kelimeyle metin yazılıyor…</div></div>';return;
+    }
+    if(R.err){
+      learnArea.innerHTML='<div class="empty"><div class="mini">!</div><h2 class="big">Metin oluşturulamadı</h2><p>'+esc(R.err)+'</p>'+
+        actions(btn("rRetry","Tekrar dene",true)+btn("rBack","Geri"))+'</div>';
+      wire({rRetry:loadReading,rBack:closeReading});return;
+    }
+    var d=R.data,qs=(d.questions||[]).filter(function(q){return q&&q.options&&q.options.length;});
+    h='<div class="read"><div class="eyebrow" style="margin-bottom:6px">Okuma · '+R.ids.length+' kelime</div><h3>'+esc(d.title||"Metin")+'</h3>'+
+      '<div class="read-tools"><button class="ghost" id="rSpk">▶ Dinle</button><button class="ghost" id="rTr">'+(R.showTr?'Türkçeyi gizle':'Türkçesini göster')+'</button>'+
+      '<button class="ghost" id="rNew">↻ Yeni metin</button><button class="ghost" id="rBack">Geri</button></div>'+
+      '<p class="read-text">'+markText(d.text)+'</p>'+(R.showTr&&d.tr?'<div class="read-tr">'+esc(d.tr).replace(/\n+/g,"<br><br>")+'</div>':'');
+    if(qs.length){
+      h+='<div class="rq"><div class="eyebrow" style="margin-bottom:12px">Sorular</div>'+qs.map(function(q,qi){
+        var a=R.ans[qi],done=a!==undefined;
+        return '<div class="rq-item"><p class="rq-q">'+(qi+1)+'. '+esc(q.q)+'</p><div class="rq-opts">'+q.options.map(function(o,oi){
+          var cls=done?(oi===q.answer?' ok':(oi===a?' bad':'')):'';
+          return '<button class="opt'+cls+'" data-q="'+qi+'" data-o="'+oi+'"'+(done?' disabled':'')+'><kbd>'+"ABCDE"[oi]+'</kbd><span>'+esc(o)+'</span></button>';
+        }).join("")+'</div>'+(done&&q.explain?'<div class="rq-exp">'+esc(q.explain)+'</div>':'')+'</div>';
+      }).join("")+'</div>';
+    }
+    learnArea.innerHTML=h+'</div>';
+    el("rSpk").addEventListener("click",function(){speakLong(plainText(d.text),this);});
+    el("rTr").addEventListener("click",function(){R.showTr=!R.showTr;drawReading();});
+    wire({rNew:loadReading,rBack:closeReading});
+    learnArea.querySelectorAll(".mk").forEach(function(b){b.addEventListener("click",function(){
+      var c=cardByBase(b.getAttribute("data-base"));if(c){showGloss(b,c);startSpeak(c.en,null);}});});
+    learnArea.querySelectorAll(".rq .opt").forEach(function(b){b.addEventListener("click",function(){
+      R.ans[+b.getAttribute("data-q")]=+b.getAttribute("data-o");drawReading();});});
+  }
+  function syncKeyUI(){var i=el("gemKey");if(i)i.value=gemKey();}
+  document.getElementById("gemSave").addEventListener("click",function(){setGemKey(el("gemKey").value.trim());toast(gemKey()?"Anahtar kaydedildi":"Anahtar silindi");});
+  syncKeyUI();
   document.getElementById("goalSeg").addEventListener("click",function(e){
     var b=e.target.closest("button");if(!b)return;
     state.meta.dailyGoal=+b.getAttribute("data-goal");
@@ -1170,7 +1346,7 @@
   /* ---------- Tabs ---------- */
   document.querySelectorAll("nav.tabs button").forEach(function(b){b.addEventListener("click",function(){switchTab(b.getAttribute("data-tab"));});});
   function switchTab(tab){
-    stopSpeak();
+    stopSpeak();if(typeof hideGloss==="function")hideGloss();
     document.querySelectorAll("nav.tabs button").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-tab")===tab);});
     document.querySelectorAll(".view").forEach(function(v){v.classList.remove("active");});
     document.getElementById("view-"+tab).classList.add("active");
